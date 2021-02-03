@@ -1,8 +1,8 @@
 use crate::app_config::AppConfig;
 use crate::models::*;
 
-use actix_web::{HttpRequest, web};
-use argon2::{self, Config};
+use actix_web::{web, HttpRequest};
+use argon2::{self, Config as ArgonConfig};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 
@@ -10,7 +10,8 @@ pub fn handle_pass_hash(
     config: web::Data<AppConfig>,
     json: &mut web::Json<RegisterRequest>,
 ) -> Result<(), &'static str> {
-    let hash_config = Config::default();
+    let mut hash_config = ArgonConfig::default();
+    hash_config.hash_length = 10;
 
     let hashed = match argon2::hash_encoded(
         json.password.as_bytes(),
