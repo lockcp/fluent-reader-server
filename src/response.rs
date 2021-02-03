@@ -13,7 +13,14 @@ pub fn get_fetch_users_error() -> HttpResponse {
 
 #[inline]
 pub fn get_registration_error() -> HttpResponse {
-    HttpResponse::Unauthorized().json(ErrorResponse { error: "reg_fail" })
+    get_error("reg_fail")
+}
+
+#[inline]
+pub fn get_user_exists_error() -> HttpResponse {
+    HttpResponse::Conflict().json(ErrorResponse {
+        error: "user_exists",
+    })
 }
 
 #[inline]

@@ -43,12 +43,17 @@ pub async fn register(
         .await
         .expect("Error connecting to the database");
 
+    let existing_user = db::get_user(&client, json.username.clone()).await;
+    if let Ok(_) = existing_user {
+        return get_user_exists_error();
+    }
+
     if let Err(err) = handle_pass_hash(config, &mut json) {
         eprintln!("{}", err);
         return get_registration_error();
     };
 
-    let result = db::create_user(
+    let create_result = db::create_user(
         &client,
         json.username.clone(),
         json.password.clone(),
@@ -56,8 +61,8 @@ pub async fn register(
     )
     .await;
 
-    match result {
-        Ok(user) => HttpResponse::Ok().json(user),
+    match create_result {
+        Ok(user) => HttpResponse::Created().json(user),
         Err(_) => get_registration_error(),
     }
 }

@@ -42,21 +42,32 @@ pub async fn create_user(
     username: String,
     password: String,
     native_lang: String,
-) -> Result<User, io::Error> {
-    let statement = client
+) -> Result<User, &'static str> {
+    let statement = match client
         .prepare("INSERT INTO fruser (username, pass, created_on, native_lang) VALUES ($1, $2, NOW(), $3) RETURNING *")
-        .await
-        .unwrap();
+        .await {
+            Ok(statement) => statement,
+            Err(err) => {
+                eprintln!("{}", err);
+                return Err("Error creating user");
+            }
+        };
 
-    client
+    match client
         .query(&statement, &[&username, &password, &native_lang])
         .await
-        .expect("Error creating user")
-        .iter()
-        .map(|row| User::from_row_ref(row).unwrap())
-        .collect::<Vec<User>>()
-        .pop()
-        .ok_or(io::Error::new(io::ErrorKind::Other, "Error creating user"))
+    {
+        Ok(result) => result
+            .iter()
+            .map(|row| User::from_row_ref(row).unwrap())
+            .collect::<Vec<User>>()
+            .pop()
+            .ok_or("Error creating user"),
+        Err(err) => {
+            eprintln!("{}", err);
+            return Err("Error creating user");
+        }
+    }
 }
 
 // pub async fn get_todos(client: &Client) -> Result<Vec<TodoList>, io::Error> {
