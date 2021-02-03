@@ -79,15 +79,14 @@ pub async fn login(
         .expect("Error connecting to the database");
 
     let result = db::get_user(&client, json.username.clone()).await;
-
     let user = match result {
-       Ok(user) => user,
-       Err(_) => return get_auth_failed_error()
+        Ok(user) => user,
+        Err(_) => return get_auth_failed_error(),
     };
 
     match attempt_user_login(config, json, user) {
         Ok(token) => HttpResponse::Ok().json(LoginResponse { token: token }),
-        Err(_) => get_auth_failed_error()
+        Err(_) => get_auth_failed_error(),
     }
 }
 

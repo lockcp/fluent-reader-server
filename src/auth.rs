@@ -37,7 +37,7 @@ pub fn handle_pass_hash(
 pub fn attempt_user_login(
     config: web::Data<AppConfig>,
     json: web::Json<LoginRequest>,
-    user: User
+    user: User,
 ) -> Result<String, &'static str> {
     let matches = argon2::verify_encoded(&user.pass, json.password.as_bytes()).unwrap();
 
@@ -67,8 +67,8 @@ pub fn attempt_user_login(
 }
 
 pub fn attempt_token_auth(
-    req: HttpRequest, 
-    config: web::Data<AppConfig>
+    req: HttpRequest,
+    config: web::Data<AppConfig>,
 ) -> Result<(), &'static str> {
     if let Some(header_value) = req.headers().get("authorization") {
         let header_str = header_value.to_str().unwrap_or("");
