@@ -35,7 +35,8 @@ CREATE TABLE article (
     title VARCHAR(250) NOT NULL,
     content VARCHAR NOT NULL,
     content_length INTEGER NOT NULL,
-    created_on TIMESTAMP NOT NULL
+    created_on TIMESTAMP NOT NULL,
+    is_system BOOLEAN NOT NULL
 );
 
 CREATE TABLE saved_articles (
