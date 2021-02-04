@@ -9,7 +9,6 @@ extern crate argon2;
 
 use crate::app_config::AppConfig;
 use crate::handlers::*;
-use std::process;
 
 use actix_web::{App, HttpServer};
 use dotenv::dotenv;
@@ -22,12 +21,6 @@ async fn main() -> std::io::Result<()> {
     let config = AppConfig::from_env().unwrap();
 
     let pool = config.pg.create_pool(NoTls).unwrap();
-
-    // Allow database to not yet be ready when server is starting
-    // if let Err(e) = pool.get().await {
-    //     eprintln!("Couldn't connect to database. Aborting with error:\n{}", e);
-    //     process::exit(1);
-    // }
 
     println!(
         "Starting server at http://{0}:{1}/",
