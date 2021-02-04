@@ -18,7 +18,7 @@ pub struct User {
 #[pg_mapper(table = "fruser")]
 pub struct SimpleUser {
     pub id: i32,
-    pub username: String
+    pub username: String,
 }
 
 // Request/Response Models
@@ -77,7 +77,7 @@ impl ClaimsUser {
             id: user.id,
             username: user.username.clone(),
             created_on: user.created_on,
-            native_lang: user.native_lang.clone()
+            native_lang: user.native_lang.clone(),
         }
     }
 }

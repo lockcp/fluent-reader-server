@@ -87,7 +87,7 @@ pub fn attempt_token_auth(
             &Validation::default(),
         ) {
             Ok(token_data) => Ok(token_data.claims),
-            Err(_) => Err("")
+            Err(_) => Err(""),
         }
     } else {
         return Err("");
