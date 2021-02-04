@@ -78,15 +78,15 @@ pub fn attempt_token_auth(
 
         let mut split_iter = header_str.split(" ");
         // iterate over "Bearer" string
-        split_iter.next();
+        split_iter.next().unwrap();
 
         let token = split_iter.next().unwrap();
-        match decode::<ClaimsUser>(
+        match decode::<TokenClaims>(
             &token,
             &DecodingKey::from_secret(config.get_ref().server.secret.as_bytes()),
             &Validation::default(),
         ) {
-            Ok(token_data) => Ok(token_data.claims),
+            Ok(token_data) => Ok(token_data.claims.user),
             Err(err) => {
                 eprintln!("{}", err);
                 Err("Decoding failed")
