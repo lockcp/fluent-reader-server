@@ -10,7 +10,8 @@ extern crate argon2;
 use crate::app_config::AppConfig;
 use crate::handlers::*;
 
-use actix_web::{App, HttpServer};
+use actix_web::{App, HttpServer, middleware::Logger};
+use env_logger::Env;
 use dotenv::dotenv;
 use tokio_postgres::NoTls;
 
@@ -26,6 +27,8 @@ async fn main() -> std::io::Result<()> {
         "Starting server at http://{0}:{1}/",
         config.server.host, config.server.port
     );
+    
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let address: String = config.server.host.clone() + ":" + &config.server.port.to_string();
 
@@ -38,6 +41,8 @@ async fn main() -> std::io::Result<()> {
             .service(get_users)
             .service(register)
             .service(status)
+            .wrap(Logger::default())
+            .wrap(Logger::new("%a %{User-Agent}i"))
     })
     .bind(address)?
     .run()
