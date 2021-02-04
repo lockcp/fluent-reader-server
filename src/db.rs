@@ -15,8 +15,7 @@ pub async fn get_user(client: &Client, username: String) -> Result<User, io::Err
         .expect("Error getting user")
         .iter()
         .map(|row| User::from_row_ref(row).unwrap())
-        .collect::<Vec<User>>()
-        .pop()
+        .next()
         .ok_or(io::Error::new(io::ErrorKind::Other, "Error getting user"))
 }
 
