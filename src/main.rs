@@ -38,10 +38,6 @@ async fn main() -> std::io::Result<()> {
             .service(get_users)
             .service(register)
             .service(status)
-        // .service(get_todos)
-        // .service(create_todo)
-        // .service(get_items)
-        // .service(check_item)
     })
     .bind(address)?
     .run()
