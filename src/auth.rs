@@ -73,7 +73,7 @@ pub fn attempt_token_auth(
     if let Some(header_value) = req.headers().get("authorization") {
         let header_str = header_value.to_str().unwrap_or("");
         if !header_str.starts_with("Bearer ") {
-            return Err("");
+            return Err("Missing bearer");
         }
 
         let mut split_iter = header_str.split(" ");
@@ -87,9 +87,12 @@ pub fn attempt_token_auth(
             &Validation::default(),
         ) {
             Ok(token_data) => Ok(token_data.claims),
-            Err(_) => Err(""),
+            Err(err) => {
+                eprintln!("{}", err);
+                Err("Decoding failed")
+            }
         }
     } else {
-        return Err("");
+        return Err("Missing authorization header");
     }
 }
