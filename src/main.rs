@@ -23,10 +23,11 @@ async fn main() -> std::io::Result<()> {
 
     let pool = config.pg.create_pool(NoTls).unwrap();
 
-    if let Err(e) = pool.get().await {
-        eprintln!("Couldn't connect to database. Aborting with error:\n{}", e);
-        process::exit(1);
-    }
+    // Allow database to not yet be ready when server is starting
+    // if let Err(e) = pool.get().await {
+    //     eprintln!("Couldn't connect to database. Aborting with error:\n{}", e);
+    //     process::exit(1);
+    // }
 
     println!(
         "Starting server at http://{0}:{1}/",
