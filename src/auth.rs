@@ -75,7 +75,12 @@ pub fn attempt_token_auth(
         if !header_str.starts_with("Bearer ") {
             return Err("");
         }
-        let token = header_str.split(" ").collect::<Vec<&str>>()[1];
+
+        let mut split_iter = header_str.split(" ");
+        // iterate over "Bearer" string
+        split_iter.next();
+
+        let token = split_iter.next().unwrap();
         match decode::<ClaimsUser>(
             &token,
             &DecodingKey::from_secret(config.get_ref().server.secret.as_bytes()),
