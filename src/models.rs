@@ -14,6 +14,13 @@ pub struct User {
     pub native_lang: String,
 }
 
+#[derive(Serialize, Deserialize, PostgresMapper)]
+#[pg_mapper(table = "fruser")]
+pub struct SimpleUser {
+    pub id: i32,
+    pub username: String
+}
+
 // Request/Response Models
 
 #[derive(Serialize)]

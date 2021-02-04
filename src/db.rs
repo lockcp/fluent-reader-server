@@ -1,4 +1,4 @@
-use crate::models::User;
+use crate::models::*;
 use deadpool_postgres::Client;
 use std::io;
 use tokio_pg_mapper::FromTokioPostgresRow;
@@ -20,9 +20,9 @@ pub async fn get_user(client: &Client, username: String) -> Result<User, io::Err
         .ok_or(io::Error::new(io::ErrorKind::Other, "Error getting user"))
 }
 
-pub async fn get_users(client: &Client) -> Result<Vec<User>, io::Error> {
+pub async fn get_users(client: &Client) -> Result<Vec<SimpleUser>, io::Error> {
     let statement = client
-        .prepare("SELECT * FROM fruser ORDER BY id LIMIT 10")
+        .prepare("SELECT id, username FROM fruser ORDER BY id LIMIT 10")
         .await
         .unwrap();
 
@@ -31,8 +31,8 @@ pub async fn get_users(client: &Client) -> Result<Vec<User>, io::Error> {
         .await
         .expect("Error getting users")
         .iter()
-        .map(|row| User::from_row_ref(row).unwrap())
-        .collect::<Vec<User>>();
+        .map(|row| SimpleUser::from_row_ref(row).unwrap())
+        .collect::<Vec<SimpleUser>>();
 
     Ok(users)
 }
