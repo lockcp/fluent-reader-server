@@ -57,7 +57,26 @@ pub struct ErrorResponse {
 // Authentication
 
 #[derive(Serialize, Deserialize)]
-pub struct UserClaims {
+pub struct ClaimsUser {
+    pub id: i32,
+    pub username: String,
+    pub created_on: SystemTime,
+    pub native_lang: String,
+}
+
+impl ClaimsUser {
+    pub fn from_user(user: &User) -> ClaimsUser {
+        ClaimsUser {
+            id: user.id,
+            username: user.username.clone(),
+            created_on: user.created_on,
+            native_lang: user.native_lang.clone()
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct TokenClaims {
     pub exp: usize,
-    pub user: User,
+    pub user: ClaimsUser,
 }

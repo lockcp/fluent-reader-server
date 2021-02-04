@@ -49,8 +49,8 @@ pub fn attempt_user_login(
             .expect("valid timestamp")
             .timestamp();
 
-        let claims = UserClaims {
-            user: user,
+        let claims = TokenClaims {
+            user: ClaimsUser::from_user(&user),
             exp: expiration as usize,
         };
         let token = encode(
@@ -69,21 +69,21 @@ pub fn attempt_user_login(
 pub fn attempt_token_auth(
     req: HttpRequest,
     config: web::Data<AppConfig>,
-) -> Result<(), &'static str> {
+) -> Result<ClaimsUser, &'static str> {
     if let Some(header_value) = req.headers().get("authorization") {
         let header_str = header_value.to_str().unwrap_or("");
         if !header_str.starts_with("Bearer ") {
             return Err("");
         }
         let token = header_str.split(" ").collect::<Vec<&str>>()[1];
-        if let Err(_) = decode::<UserClaims>(
+        match decode::<ClaimsUser>(
             &token,
             &DecodingKey::from_secret(config.get_ref().server.secret.as_bytes()),
             &Validation::default(),
         ) {
-            return Err("");
+            Ok(token_data) => Ok(token_data.claims),
+            Err(_) => Err("")
         }
-        return Ok(());
     } else {
         return Err("");
     }
