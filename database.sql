@@ -33,10 +33,13 @@ CREATE TABLE user_word_data (
 CREATE TABLE article (
     id SERIAL PRIMARY KEY,
     title VARCHAR(250) NOT NULL,
+    author VARCHAR,
     content VARCHAR NOT NULL,
     content_length INTEGER NOT NULL,
     created_on TIMESTAMP NOT NULL,
-    is_system BOOLEAN NOT NULL
+    is_system BOOLEAN NOT NULL,
+    uploader_id INTEGER NOT NULL,
+    FOREIGN KEY (uploader_id) REFERENCES fruser(id)
 );
 
 CREATE TABLE saved_articles (
