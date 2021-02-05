@@ -1,11 +1,9 @@
 .git
 postgres-data
 src
-.env
 .gitignore
 Cargo.lock
 Cargo.toml
 database.sql
-db.env
 docker-compose.yml
 Dockerfile
