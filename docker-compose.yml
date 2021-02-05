@@ -12,5 +12,17 @@ services:
       - "db.env"
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
+  app:
+    container_name: app
+    build: .
+    restart: always
+    depends_on:
+      - postgres
+    ports: 
+      - "80:80"
+    networks:
+      - backend
+    environment: 
+      PG.HOST: postgres
 networks: 
   backend:
