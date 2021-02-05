@@ -19,7 +19,7 @@ use std::process;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     if let Err(err) = dotenv() {
-        eprintln!("Couldn't find .env file. Exiting with error:\n{}", err);
+        eprintln!("Couldn't parse .env file. Exiting with error:\n{}", err);
         process::exit(1);
     }
 
