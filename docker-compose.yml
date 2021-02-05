@@ -10,17 +10,7 @@ services:
       - backend
     env_file: 
       - "db.env"
-  app:
-    container_name: app
-    build: .
-    restart: always
-    depends_on:
-      - postgres
-    ports: 
-      - "80:80"
-    networks:
-      - backend
-    environment: 
-      PG.HOST: postgres
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
 networks: 
   backend:
