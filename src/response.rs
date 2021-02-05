@@ -29,6 +29,16 @@ pub fn get_auth_failed_error() -> HttpResponse {
 }
 
 #[inline]
+pub fn get_fetch_articles_error() -> HttpResponse {
+    get_error("article_get_fail")
+}
+
+#[inline]
+pub fn get_create_article_error() -> HttpResponse {
+    get_error("article_create_fail")
+}
+
+#[inline]
 pub fn get_success_with_message(message: &'static str) -> HttpResponse {
     HttpResponse::Ok().json(Message { message: message })
 }

@@ -99,3 +99,74 @@ pub async fn auth(req: HttpRequest, config: web::Data<AppConfig>) -> impl Respon
         get_success()
     }
 }
+
+#[get("/articles{_:/?}")]
+pub async fn get_articles(
+    req: HttpRequest,
+    db_pool: web::Data<Pool>,
+    config: web::Data<AppConfig>,
+    json: Option<web::Json<GetArticlesRequest>>,
+) -> impl Responder {
+    if let Err(_) = attempt_token_auth(req, config) {
+        return get_auth_failed_error();
+    }
+
+    let client: Client = match db_pool.get().await {
+        Ok(client) => client,
+        Err(err) => {
+            eprintln!("{}", err);
+            return get_fetch_articles_error();
+        }
+    };
+
+    let offset = match json {
+        Some(json) => match json.offset {
+            Some(offset) => offset,
+            None => 0,
+        },
+        None => 0
+    };
+
+    let result = db::get_articles(&client, offset).await;
+
+    match result {
+        Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
+        Err(_) => get_fetch_articles_error(),
+    }
+}
+
+#[post("/articles{_:/?}")]
+pub async fn create_article(
+    req: HttpRequest,
+    db_pool: web::Data<Pool>,
+    config: web::Data<AppConfig>,
+    json: web::Json<NewArticleRequest>,
+) -> impl Responder {
+    let auth_result = attempt_token_auth(req, config);
+    if let Err(_) = auth_result {
+        return get_auth_failed_error();
+    }
+    let user = auth_result.unwrap();
+
+    let client: Client = match db_pool.get().await {
+        Ok(client) => client,
+        Err(err) => {
+            eprintln!("{}", err);
+            return get_create_article_error();
+        }
+    };
+
+    let result = db::create_article(
+        &client,
+        json.title.clone(),
+        json.author.clone(),
+        json.content.clone(),
+        user.id
+    )
+    .await;
+
+    match result {
+        Ok(article) => HttpResponse::Created().json(NewArticleResponse::from(article)),
+        Err(_) => get_create_article_error(),
+    }
+}

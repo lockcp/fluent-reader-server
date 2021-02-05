@@ -42,6 +42,8 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::new("%a %{User-Agent}i"))
             .data(pool.clone())
             .data(config.clone())
+            .service(get_articles)
+            .service(create_article)
             .service(login)
             .service(auth)
             .service(get_users)
