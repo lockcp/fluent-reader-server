@@ -20,7 +20,7 @@ use std::process;
 async fn main() -> std::io::Result<()> {
     if let Err(err) = dotenv() {
         eprintln!("Couldn't find .env file. Exiting with error:\n{}", err);
-        process::abort();
+        process::exit(1);
     }
 
     let config = AppConfig::from_env().unwrap();
