@@ -14,10 +14,14 @@ use actix_web::{App, HttpServer, middleware::Logger};
 use env_logger::Env;
 use dotenv::dotenv;
 use tokio_postgres::NoTls;
+use std::process;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenv().ok();
+    if let Err(err) = dotenv() {
+        eprintln!("Couldn't find .env file. Exiting with error:\n{}", err);
+        process::abort();
+    }
 
     let config = AppConfig::from_env().unwrap();
 
