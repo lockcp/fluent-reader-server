@@ -38,6 +38,8 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(Logger::default())
+            .wrap(Logger::new("%a %{User-Agent}i"))
             .data(pool.clone())
             .data(config.clone())
             .service(login)
@@ -45,8 +47,6 @@ async fn main() -> std::io::Result<()> {
             .service(get_users)
             .service(register)
             .service(status)
-            .wrap(Logger::default())
-            .wrap(Logger::new("%a %{User-Agent}i"))
     })
     .bind(address)?
     .run()
