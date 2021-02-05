@@ -10,11 +10,11 @@ extern crate argon2;
 use crate::app_config::AppConfig;
 use crate::handlers::*;
 
-use actix_web::{App, HttpServer, middleware::Logger};
-use env_logger::Env;
+use actix_web::{middleware::Logger, App, HttpServer};
 use dotenv::dotenv;
-use tokio_postgres::NoTls;
+use env_logger::Env;
 use std::process;
+use tokio_postgres::NoTls;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
