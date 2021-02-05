@@ -60,8 +60,7 @@ pub async fn create_user(
         Ok(result) => result
             .iter()
             .map(|row| User::from_row_ref(row).unwrap())
-            .collect::<Vec<User>>()
-            .pop()
+            .next()
             .ok_or("Error creating user"),
         Err(err) => {
             eprintln!("{}", err);
