@@ -43,7 +43,8 @@ pub async fn create_user(
     native_lang: String,
 ) -> Result<User, &'static str> {
     let statement = match client
-        .prepare("INSERT INTO fruser (username, pass, created_on, native_lang) VALUES ($1, $2, NOW(), $3) RETURNING *")
+        .prepare("INSERT INTO fruser (username, pass, created_on, native_lang) 
+            VALUES ($1, $2, NOW(), $3) RETURNING *")
         .await {
             Ok(statement) => statement,
             Err(err) => {
