@@ -54,23 +54,7 @@ pub struct StatusResponse {
     pub status: String,
 }
 
-#[derive(Deserialize)]
-pub struct RegisterRequest {
-    pub username: String,
-    pub password: String,
-    pub native_lang: String,
-}
-
-#[derive(Deserialize)]
-pub struct LoginRequest {
-    pub username: String,
-    pub password: String,
-}
-
-#[derive(Serialize)]
-pub struct LoginResponse {
-    pub token: String,
-}
+// General
 
 #[derive(Serialize)]
 pub struct ResultResponse {
@@ -85,6 +69,28 @@ pub struct Message {
 #[derive(Serialize)]
 pub struct ErrorResponse {
     pub error: &'static str,
+}
+
+// Registration
+
+#[derive(Deserialize)]
+pub struct RegisterRequest {
+    pub username: String,
+    pub password: String,
+    pub native_lang: String,
+}
+
+// Login
+
+#[derive(Deserialize)]
+pub struct LoginRequest {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Serialize)]
+pub struct LoginResponse {
+    pub token: String,
 }
 
 // Authentication
