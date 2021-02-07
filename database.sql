@@ -2,7 +2,10 @@
     Database Creation
 */
 
+\c postgres;
+DROP DATABASE fr;
 CREATE DATABASE fr WITH ENCODING 'UTF8';
+\c fr;
 
 /* 
     Table Creation
@@ -36,11 +39,14 @@ CREATE TABLE article (
     author VARCHAR,
     content VARCHAR NOT NULL,
     content_length INTEGER NOT NULL,
+    words VARCHAR[] NOT NULL,
+    unique_words JSONB NOT NULL,
     created_on TIMESTAMP NOT NULL,
     is_system BOOLEAN NOT NULL,
     uploader_id INTEGER NOT NULL,
+    FOREIGN KEY (uploader_id) REFERENCES fruser(id),
     lang VARCHAR(6) NOT NULL,
-    FOREIGN KEY (uploader_id) REFERENCES fruser(id)
+    tags VARCHAR[] NOT NULL
 );
 
 CREATE TABLE saved_articles (
