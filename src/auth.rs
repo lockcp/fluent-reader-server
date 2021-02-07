@@ -11,7 +11,7 @@ pub fn handle_pass_hash(
     json: &mut web::Json<RegisterRequest>,
 ) -> Result<(), &'static str> {
     let mut hash_config = ArgonConfig::default();
-    hash_config.hash_length = 10;
+    hash_config.hash_length = 9;
 
     let hashed = match argon2::hash_encoded(
         json.password.as_bytes(),
@@ -21,6 +21,8 @@ pub fn handle_pass_hash(
         Ok(hash_result) => hash_result,
         Err(_) => return Err("Failed to hash password"),
     };
+
+    println!("{}", hashed.len());
 
     // overwrite the plaintext password memory before dropping it
     // by reassigning the new hashed password string to it
