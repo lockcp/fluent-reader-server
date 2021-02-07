@@ -39,6 +39,7 @@ CREATE TABLE article (
     created_on TIMESTAMP NOT NULL,
     is_system BOOLEAN NOT NULL,
     uploader_id INTEGER NOT NULL,
+    lang VARCHAR(6) NOT NULL,
     FOREIGN KEY (uploader_id) REFERENCES fruser(id)
 );
 
