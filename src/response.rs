@@ -7,6 +7,11 @@ pub fn get_error(error: &'static str) -> HttpResponse {
 }
 
 #[inline]
+pub fn get_not_found(error: &'static str) -> HttpResponse {
+    HttpResponse::NotFound().json(ErrorResponse { error: error })
+}
+
+#[inline]
 pub fn get_fetch_users_error() -> HttpResponse {
     get_error("user_get_fail")
 }
@@ -30,7 +35,17 @@ pub fn get_auth_failed_error() -> HttpResponse {
 
 #[inline]
 pub fn get_fetch_articles_error() -> HttpResponse {
+    get_error("article_list_get_fail")
+}
+
+#[inline]
+pub fn get_fetch_article_error() -> HttpResponse {
     get_error("article_get_fail")
+}
+
+#[inline]
+pub fn get_article_not_found() -> HttpResponse {
+    get_not_found("article_not_found")
 }
 
 #[inline]

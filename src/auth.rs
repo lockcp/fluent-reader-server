@@ -1,4 +1,4 @@
-use crate::app_config::AppConfig;
+use crate::app_config::CONFIG;
 use crate::models::*;
 
 use actix_web::{web, HttpRequest};
@@ -7,7 +7,6 @@ use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 
 pub fn handle_pass_hash(
-    config: web::Data<AppConfig>,
     json: &mut web::Json<RegisterRequest>,
 ) -> Result<(), &'static str> {
     let mut hash_config = ArgonConfig::default();
@@ -15,14 +14,12 @@ pub fn handle_pass_hash(
 
     let hashed = match argon2::hash_encoded(
         json.password.as_bytes(),
-        config.get_ref().server.salt.as_bytes(),
+        CONFIG.server.salt.as_bytes(),
         &hash_config,
     ) {
         Ok(hash_result) => hash_result,
         Err(_) => return Err("Failed to hash password"),
     };
-
-    println!("{}", hashed.len());
 
     // overwrite the plaintext password memory before dropping it
     // by reassigning the new hashed password string to it
@@ -37,7 +34,6 @@ pub fn handle_pass_hash(
 }
 
 pub fn attempt_user_login(
-    config: web::Data<AppConfig>,
     json: web::Json<LoginRequest>,
     user: User,
 ) -> Result<String, &'static str> {
@@ -46,7 +42,7 @@ pub fn attempt_user_login(
     if matches {
         let expiration = Utc::now()
             .checked_add_signed(chrono::Duration::seconds(
-                config.get_ref().server.token_time,
+                CONFIG.server.token_time,
             ))
             .expect("valid timestamp")
             .timestamp();
@@ -58,7 +54,7 @@ pub fn attempt_user_login(
         let token = encode(
             &Header::default(),
             &claims,
-            &EncodingKey::from_secret(config.get_ref().server.secret.as_bytes()),
+            &EncodingKey::from_secret(CONFIG.server.secret.as_bytes()),
         )
         .unwrap();
 
@@ -69,8 +65,7 @@ pub fn attempt_user_login(
 }
 
 pub fn attempt_token_auth(
-    req: HttpRequest,
-    config: web::Data<AppConfig>,
+    req: &HttpRequest,
 ) -> Result<ClaimsUser, &'static str> {
     if let Some(header_value) = req.headers().get("authorization") {
         let header_str = header_value.to_str().unwrap_or("");
@@ -85,7 +80,7 @@ pub fn attempt_token_auth(
         let token = split_iter.next().unwrap();
         match decode::<TokenClaims>(
             &token,
-            &DecodingKey::from_secret(config.get_ref().server.secret.as_bytes()),
+            &DecodingKey::from_secret(CONFIG.server.secret.as_bytes()),
             &Validation::default(),
         ) {
             Ok(token_data) => Ok(token_data.claims.user),

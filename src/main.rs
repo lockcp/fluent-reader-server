@@ -2,15 +2,19 @@ mod app_config;
 mod auth;
 mod db;
 mod handlers;
+mod lang;
 mod models;
 mod response;
 
 extern crate argon2;
 
-use crate::app_config::AppConfig;
+use crate::app_config::CONFIG;
 use crate::handlers::*;
 
-use actix_web::{middleware::Logger, App, HttpServer};
+use actix_web::{
+    middleware::{Logger, NormalizePath},
+    web, App, HttpServer,
+};
 use dotenv::dotenv;
 use env_logger::Env;
 use std::process;
@@ -23,25 +27,24 @@ async fn main() -> std::io::Result<()> {
         process::exit(1);
     }
 
-    let config = AppConfig::from_env().unwrap();
-
-    let pool = config.pg.create_pool(NoTls).unwrap();
-
     println!(
         "Starting server at http://{0}:{1}/",
-        config.server.host, config.server.port
+        CONFIG.server.host, CONFIG.server.port
     );
-    
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let address: String = config.server.host.clone() + ":" + &config.server.port.to_string();
+    let address: String = CONFIG.server.host.clone() + ":" + &CONFIG.server.port.to_string();
+    let pool = CONFIG.pg.create_pool(NoTls).unwrap();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    let json_config = web::JsonConfig::default().limit(CONFIG.server.json_max_size);
 
     HttpServer::new(move || {
         App::new()
+            .wrap(NormalizePath::default())
             .wrap(Logger::default())
             .wrap(Logger::new("%a %{User-Agent}i"))
+            .app_data(json_config.clone())
             .data(pool.clone())
-            .data(config.clone())
+            .service(get_full_article)
             .service(get_articles)
             .service(create_article)
             .service(login)
