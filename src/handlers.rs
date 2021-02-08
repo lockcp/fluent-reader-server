@@ -21,7 +21,7 @@ pub mod user {
     pub async fn get_users(
         db_pool: web::Data<Pool>,
         query: web::Query<GetUsersRequest>,
-        _auth_user: ClaimsUser
+        _auth_user: ClaimsUser,
     ) -> impl Responder {
         let client: Client = match db_pool.get().await {
             Ok(client) => client,
@@ -76,10 +76,7 @@ pub mod user {
     }
 
     #[post("/login/")]
-    pub async fn login(
-        db_pool: web::Data<Pool>,
-        json: web::Json<LoginRequest>,
-    ) -> impl Responder {
+    pub async fn login(db_pool: web::Data<Pool>, json: web::Json<LoginRequest>) -> impl Responder {
         let client: Client = db_pool
             .get()
             .await
@@ -103,7 +100,7 @@ pub mod user {
 
 pub mod article {
     use super::*;
-    
+
     #[get("/articles/")]
     pub async fn get_articles(
         db_pool: web::Data<Pool>,
@@ -191,5 +188,4 @@ pub mod article {
             Err(_) => article_res::get_create_article_error(),
         }
     }
-
 }

@@ -1,6 +1,6 @@
-use actix_web::{dev, Error, HttpRequest, FromRequest};
 use actix_web::error::ErrorUnauthorized;
-use futures_util::future::{ok, err, Ready};
+use actix_web::{dev, Error, FromRequest, HttpRequest};
+use futures_util::future::{err, ok, Ready};
 use serde::{Deserialize, Serialize};
 use std::time::SystemTime;
 use tokio_pg_mapper_derive::PostgresMapper;

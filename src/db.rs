@@ -5,13 +5,16 @@ use tokio_pg_mapper::FromTokioPostgresRow;
 
 pub mod user {
     use super::*;
-    
-    pub async fn get_user(client: &Client, username: &String) -> Result<Option<User>, &'static str> {
+
+    pub async fn get_user(
+        client: &Client,
+        username: &String,
+    ) -> Result<Option<User>, &'static str> {
         let statement = client
             .prepare("SELECT * FROM fruser WHERE username = $1")
             .await
             .unwrap();
-    
+
         match client.query_opt(&statement, &[username]).await {
             Ok(ref row) => match row {
                 Some(ref user) => match User::from_row_ref(user) {
@@ -29,13 +32,13 @@ pub mod user {
             }
         }
     }
-    
+
     pub async fn get_users(client: &Client, offset: &i64) -> Result<Vec<SimpleUser>, io::Error> {
         let statement = client
             .prepare("SELECT id, username FROM fruser ORDER BY id LIMIT 10 OFFSET $1")
             .await
             .unwrap();
-    
+
         let users = client
             .query(&statement, &[offset])
             .await
@@ -43,10 +46,10 @@ pub mod user {
             .iter()
             .map(|row| SimpleUser::from_row_ref(row).unwrap())
             .collect::<Vec<SimpleUser>>();
-    
+
         Ok(users)
     }
-    
+
     pub async fn create_user(
         client: &Client,
         username: &String,
@@ -66,7 +69,7 @@ pub mod user {
                 return Err("Error creating user");
             }
         };
-    
+
         match client
             .query_one(&statement, &[username, password, native_lang])
             .await
@@ -97,7 +100,7 @@ pub mod article {
             .prepare("SELECT * FROM article WHERE id = $1")
             .await
             .unwrap();
-    
+
         match client.query_opt(&statement, &[article_id]).await {
             Ok(ref row_opt) => match row_opt {
                 Some(ref row) => match Article::from_row_ref(row) {
@@ -115,8 +118,11 @@ pub mod article {
             }
         }
     }
-    
-    pub async fn get_articles(client: &Client, offset: &i64) -> Result<Vec<SimpleArticle>, io::Error> {
+
+    pub async fn get_articles(
+        client: &Client,
+        offset: &i64,
+    ) -> Result<Vec<SimpleArticle>, io::Error> {
         let statement = client
             .prepare(
                 "SELECT id, title, author, content_length, created_on, is_system, lang, tags 
@@ -124,7 +130,7 @@ pub mod article {
             )
             .await
             .unwrap();
-    
+
         let articles = client
             .query(&statement, &[offset])
             .await
@@ -132,10 +138,10 @@ pub mod article {
             .iter()
             .map(|row| SimpleArticle::from_row_ref(row).unwrap())
             .collect::<Vec<SimpleArticle>>();
-    
+
         Ok(articles)
     }
-    
+
     pub async fn create_article(
         client: &Client,
         title: &String,
@@ -157,12 +163,12 @@ pub mod article {
                     return Err("Error creating article");
                 }
             };
-    
+
         let tags: Vec<String> = match tags_option {
             Some(tags) => tags.clone(),
             None => vec![],
         };
-    
+
         match client
             .query_one(
                 &statement,
@@ -194,6 +200,4 @@ pub mod article {
             }
         }
     }
-    
 }
-

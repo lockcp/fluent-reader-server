@@ -6,9 +6,7 @@ use argon2::{self, Config as ArgonConfig};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 
-pub fn handle_pass_hash(
-    json: &mut web::Json<RegisterRequest>,
-) -> Result<(), &'static str> {
+pub fn handle_pass_hash(json: &mut web::Json<RegisterRequest>) -> Result<(), &'static str> {
     let mut hash_config = ArgonConfig::default();
     hash_config.hash_length = 9;
 
@@ -41,9 +39,7 @@ pub fn attempt_user_login(
 
     if matches {
         let expiration = Utc::now()
-            .checked_add_signed(chrono::Duration::seconds(
-                CONFIG.server.token_time,
-            ))
+            .checked_add_signed(chrono::Duration::seconds(CONFIG.server.token_time))
             .expect("valid timestamp")
             .timestamp();
 
@@ -64,9 +60,7 @@ pub fn attempt_user_login(
     }
 }
 
-pub fn attempt_token_auth(
-    req: &HttpRequest,
-) -> Result<ClaimsUser, &'static str> {
+pub fn attempt_token_auth(req: &HttpRequest) -> Result<ClaimsUser, &'static str> {
     if let Some(header_value) = req.headers().get("authorization") {
         let header_str = header_value.to_str().unwrap_or("");
         if !header_str.starts_with("Bearer ") {

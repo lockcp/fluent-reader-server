@@ -1,6 +1,6 @@
 use config::ConfigError;
-use serde::Deserialize;
 use lazy_static::lazy_static;
+use serde::Deserialize;
 
 lazy_static! {
     pub static ref CONFIG: AppConfig = AppConfig::from_env().unwrap();
@@ -13,7 +13,7 @@ pub struct ServerConfig {
     pub secret: String,
     pub token_time: i64,
     pub salt: String,
-    pub json_max_size: usize
+    pub json_max_size: usize,
 }
 
 #[derive(Clone, Deserialize)]
