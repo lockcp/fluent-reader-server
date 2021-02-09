@@ -292,13 +292,12 @@ impl NewArticleResponse {
 pub struct UpdateWordStatusRequest {
     pub lang: String,
     pub word: String,
-    pub status: String
+    pub status: String,
 }
-
 
 #[derive(Deserialize)]
 pub struct UpdateWordDefinitionRequest {
     pub lang: String,
     pub word: String,
-    pub definition: String
+    pub definition: String,
 }

@@ -4,7 +4,7 @@ use crate::lang;
 use crate::models::*;
 use crate::response::*;
 
-use actix_web::{get, post, put, delete, web, HttpResponse, Responder};
+use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
 
 #[get("/")]
@@ -140,7 +140,7 @@ pub mod user {
                 &auth_user.id,
                 &json.lang,
                 &json.word,
-                &json.status
+                &json.status,
             )
             .await;
 
@@ -169,7 +169,7 @@ pub mod user {
                 &auth_user.id,
                 &json.lang,
                 &json.word,
-                &json.definition
+                &json.definition,
             )
             .await;
 
@@ -309,7 +309,6 @@ pub mod article {
             }
         }
 
-
         #[get("/article/user/saved/")]
         pub async fn get_saved_articles(
             db_pool: web::Data<Pool>,
@@ -403,9 +402,12 @@ pub mod article {
                 }
             };
 
-            let result =
-                db::article::user::user_delete_saved_article(&client, &auth_user.id, &json.article_id)
-                    .await;
+            let result = db::article::user::user_delete_saved_article(
+                &client,
+                &auth_user.id,
+                &json.article_id,
+            )
+            .await;
 
             match result {
                 Ok(()) => get_success(),
