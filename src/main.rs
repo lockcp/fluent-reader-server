@@ -43,12 +43,25 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .app_data(json_config.clone())
             .data(pool.clone())
-            .service(article::get_full_article)
-            .service(article::get_articles)
-            .service(article::create_article)
-            .service(user::login)
             .service(user::get_users)
+            .service(user::login)
             .service(user::register)
+
+            .service(user::data::get_user_word_data)
+            .service(user::data::update_word_status)
+            .service(user::data::update_word_definition)
+
+            .service(article::create_article)
+
+            .service(article::system::get_articles)
+            .service(article::system::get_full_article)
+
+            .service(article::user::get_user_uploaded_articles)
+            .service(article::user::get_saved_articles)
+            .service(article::user::get_full_article)
+            .service(article::user::save_article)
+            .service(article::user::removed_saved_article)
+
             .service(status)
     })
     .bind(address)?

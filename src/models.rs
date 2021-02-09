@@ -206,6 +206,19 @@ impl GetUsersResponse {
     }
 }
 
+// Word Data
+
+#[derive(Serialize)]
+pub struct GetWordDataResponse {
+    pub data: UserWordData,
+}
+
+impl GetWordDataResponse {
+    pub fn new(data: UserWordData) -> GetWordDataResponse {
+        GetWordDataResponse { data: data }
+    }
+}
+
 // Articles
 
 // get article list
@@ -234,8 +247,8 @@ impl GetArticlesResponse {
 // get full article
 
 #[derive(Deserialize)]
-pub struct GetFullArticleRequest {
-    pub article_id: i64,
+pub struct ArticleRequest {
+    pub article_id: i32,
 }
 
 #[derive(Serialize)]
@@ -271,4 +284,21 @@ impl NewArticleResponse {
     pub fn from(article: Article) -> NewArticleResponse {
         NewArticleResponse { article: article }
     }
+}
+
+// Word Data
+
+#[derive(Deserialize)]
+pub struct UpdateWordStatusRequest {
+    pub lang: String,
+    pub word: String,
+    pub status: String
+}
+
+
+#[derive(Deserialize)]
+pub struct UpdateWordDefinitionRequest {
+    pub lang: String,
+    pub word: String,
+    pub definition: String
 }

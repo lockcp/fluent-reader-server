@@ -150,7 +150,7 @@ pub mod user {
                     return Err("Error getting word data");
                 }
             };
-    
+
             match client.query_one(&statement, &[user_id]).await {
                 Ok(result) => match UserWordData::from_row_ref(&result) {
                     Ok(word_data) => Ok(word_data),
@@ -165,7 +165,7 @@ pub mod user {
                 }
             }
         }
-    
+
         pub async fn update_word_status(
             client: &Client,
             user_id: &i32,
@@ -203,7 +203,7 @@ pub mod user {
                     .await,
                  _ => return Err("Invalid status")
             };
-    
+
             let statement = match statement_result {
                 Ok(statement) => statement,
                 Err(err) => {
@@ -211,11 +211,8 @@ pub mod user {
                     return Err("Error updating word status");
                 }
             };
-    
-            match client
-                .execute(&statement, &[user_id, lang, word])
-                .await
-            {
+
+            match client.execute(&statement, &[user_id, lang, word]).await {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
@@ -223,13 +220,13 @@ pub mod user {
                 }
             }
         }
-    
+
         pub async fn update_word_definition(
             client: &Client,
             user_id: &i32,
             lang: &String,
             word: &String,
-            definition: &String
+            definition: &String,
         ) -> Result<(), &'static str> {
             let statement = match client
                 .prepare(
@@ -248,7 +245,10 @@ pub mod user {
                 }
             };
 
-            match client.execute(&statement, &[user_id, lang, word, definition]).await {
+            match client
+                .execute(&statement, &[user_id, lang, word, definition])
+                .await
+            {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);

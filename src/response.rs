@@ -20,6 +20,21 @@ pub mod user_res {
     }
 
     #[inline]
+    pub fn get_fetch_data_error() -> HttpResponse {
+        get_error("user_data_get_fail")
+    }
+
+    #[inline]
+    pub fn get_update_word_status_error() -> HttpResponse {
+        get_error("user_update_word_status_fail")
+    }
+
+    #[inline]
+    pub fn get_update_word_definition_error() -> HttpResponse {
+        get_error("user_update_word_definition_fail")
+    }
+
+    #[inline]
     pub fn get_registration_error() -> HttpResponse {
         get_error("reg_fail")
     }
@@ -51,6 +66,16 @@ pub mod article_res {
     }
 
     #[inline]
+    pub fn get_save_article_error() -> HttpResponse {
+        get_error("article_save_fail")
+    }
+
+    #[inline]
+    pub fn get_delete_article_error() -> HttpResponse {
+        get_error("article_delete_fail")
+    }
+
+    #[inline]
     pub fn get_article_not_found() -> HttpResponse {
         get_not_found("article_not_found")
     }
@@ -68,5 +93,5 @@ pub fn get_success_with_message(message: &'static str) -> HttpResponse {
 
 #[inline]
 pub fn get_success() -> HttpResponse {
-    get_success_with_message("Success")
+    get_success_with_message("success")
 }
