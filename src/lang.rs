@@ -32,7 +32,17 @@ pub fn get_unique_words(words: &Vec<&str>) -> serde_json::Value {
     };
 
     for word in words.iter() {
-        map.insert(word.to_lowercase(), json!(true));
+        let lowercase = word.to_lowercase();
+        if map.contains_key(&lowercase) {
+            let current_value = map.get(&lowercase).unwrap().clone();
+            if let serde_json::Value::Number(num) = current_value {
+                map.insert(lowercase, json!(num.as_i64().unwrap() + 1i64));
+            } else {
+                panic!("Value stored in unique words map is not a number!");
+            }
+        } else {
+            map.insert(lowercase, json!(1));
+        }
     }
 
     unique_words
