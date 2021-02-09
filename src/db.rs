@@ -173,32 +173,37 @@ pub mod user {
             word: &String,
             new_status: &String,
         ) -> Result<(), &'static str> {
+            // TODO: figure out how to properly inject word/lang strings into sql query without format!
+            // the client's prepare statement doesn't seem to recognize $n tokens inside JSON literals at the moment
             let statement_result = match &new_status[..] {
                  "known" => client
                     .prepare(
-                        r#"
-                        UPDATE user_word_data
-                        SET word_status_data = word_status_data #- '{$2, learning, $3}'
-                        WHERE fruser_id = $1
-                    "#,
+                        &format!(
+                            r#"
+                            UPDATE user_word_data
+                            SET word_status_data = jsonb_set((word_status_data #- '{{{}, learning, {}}}'), '{{{}, known, {}}}', '1')
+                            WHERE fruser_id = $1
+                        "#, lang, word, lang, word)[..]
                     )
                     .await,
                  "learning" => client
                     .prepare(
+                        &format!(
                         r#"
                         UPDATE user_word_data
-                        SET word_status_data = word_status_data #- '{$2, known, $3}'
+                        SET word_status_data = jsonb_set((word_status_data #- '{{{}, known, {}}}'), '{{{}, learning, {}}}', '1')
                         WHERE fruser_id = $1
-                    "#,
+                        "#, lang, word, lang, word)[..]
                     )
                     .await,
                  "new" => client
                     .prepare(
+                        &format!(
                         r#"
                         UPDATE user_word_data
-                        SET word_status_data = word_status_data #- '{$2, known, $3}' #- '{$2, learning, $3}'
+                        SET word_status_data = word_status_data #- '{{{}, known, {}}}' #- '{{{}, learning, {}}}'
                         WHERE fruser_id = $1
-                    "#,
+                    "#, lang, word, lang, word)[..]
                     )
                     .await,
                  _ => return Err("Invalid status")
@@ -212,7 +217,7 @@ pub mod user {
                 }
             };
 
-            match client.execute(&statement, &[user_id, lang, word]).await {
+            match client.execute(&statement, &[user_id]).await {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
@@ -228,13 +233,16 @@ pub mod user {
             word: &String,
             definition: &String,
         ) -> Result<(), &'static str> {
+            // TODO: figure out how to properly inject word/lang strings into sql query without format!
+            // the client's prepare statement doesn't seem to recognize $n tokens inside JSON literals at the moment
             let statement = match client
                 .prepare(
+                    &format!(
                     r#"
                     UPDATE user_word_data
-                    SET word_definition_data = jsonb_set(word_definition_data, '{$2, $3}', '$4')
+                    SET word_definition_data = jsonb_set(word_definition_data, '{{ {}, {} }}', jsonb '"{}"')
                     WHERE fruser_id = $1
-                "#,
+                "#, lang, word, definition)[..]
                 )
                 .await
             {
@@ -245,10 +253,7 @@ pub mod user {
                 }
             };
 
-            match client
-                .execute(&statement, &[user_id, lang, word, definition])
-                .await
-            {
+            match client.execute(&statement, &[user_id]).await {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
