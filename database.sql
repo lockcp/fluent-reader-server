@@ -55,5 +55,6 @@ CREATE TABLE saved_article (
     FOREIGN KEY (fruser_id) REFERENCES fruser(id),
     article_id INTEGER NOT NULL,
     FOREIGN KEY (article_id) REFERENCES article(id),
-    saved_on TIMESTAMP NOT NULL
+    saved_on TIMESTAMP NOT NULL,
+    PRIMARY KEY(fruser_id, article_id)
 );
