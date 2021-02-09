@@ -37,6 +37,13 @@ impl SimpleUser {
 }
 
 #[derive(Serialize, Deserialize, PostgresMapper)]
+#[pg_mapper(table = "user_word_data")]
+pub struct UserWordData {
+    pub word_status_data: serde_json::Value,
+    pub word_definition_data: serde_json::Value,
+}
+
+#[derive(Serialize, Deserialize, PostgresMapper)]
 #[pg_mapper(table = "article")]
 pub struct Article {
     pub id: i32,
@@ -251,7 +258,7 @@ pub struct NewArticleRequest {
     pub content: String,
     pub language: String,
     pub tags: Option<Vec<String>>,
-    pub is_private: bool
+    pub is_private: bool,
 }
 
 #[derive(Serialize)]
