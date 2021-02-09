@@ -251,6 +251,7 @@ pub struct NewArticleRequest {
     pub content: String,
     pub language: String,
     pub tags: Option<Vec<String>>,
+    pub is_private: bool
 }
 
 #[derive(Serialize)]

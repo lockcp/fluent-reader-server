@@ -17,7 +17,7 @@ pub async fn status() -> impl Responder {
 pub mod user {
     use super::*;
 
-    #[get("/users/")]
+    #[get("/user/")]
     pub async fn get_users(
         db_pool: web::Data<Pool>,
         query: web::Query<GetUsersRequest>,
@@ -44,7 +44,7 @@ pub mod user {
         }
     }
 
-    #[post("/register/")]
+    #[post("/user/reg/")]
     pub async fn register(
         db_pool: web::Data<Pool>,
         mut json: web::Json<RegisterRequest>,
@@ -75,7 +75,7 @@ pub mod user {
         }
     }
 
-    #[post("/login/")]
+    #[post("/user/log/")]
     pub async fn login(db_pool: web::Data<Pool>, json: web::Json<LoginRequest>) -> impl Responder {
         let client: Client = db_pool
             .get()
@@ -101,7 +101,7 @@ pub mod user {
 pub mod article {
     use super::*;
 
-    #[get("/articles/")]
+    #[get("/article/system/")]
     pub async fn get_articles(
         db_pool: web::Data<Pool>,
         query: web::Query<GetArticlesRequest>,
@@ -120,7 +120,7 @@ pub mod article {
             None => 0,
         };
 
-        let result = db::article::get_articles(&client, &offset).await;
+        let result = db::article::system::get_system_article_list(&client, &offset).await;
 
         match result {
             Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
@@ -128,7 +128,7 @@ pub mod article {
         }
     }
 
-    #[get("/articles/{article_id}/")]
+    #[get("/article/system/{article_id}/")]
     pub async fn get_full_article(
         db_pool: web::Data<Pool>,
         web::Path(article_id): web::Path<i32>,
@@ -142,7 +142,7 @@ pub mod article {
             }
         };
 
-        let result = db::article::get_article(&client, &article_id).await;
+        let result = db::article::system::get_system_article(&client, &article_id).await;
 
         match result {
             Ok(article_opt) => match article_opt {
@@ -153,7 +153,7 @@ pub mod article {
         }
     }
 
-    #[post("/articles/")]
+    #[post("/article/")]
     pub async fn create_article(
         db_pool: web::Data<Pool>,
         json: web::Json<NewArticleRequest>,
@@ -180,6 +180,7 @@ pub mod article {
             &json.tags,
             &words,
             &unique_words,
+            &json.is_private
         )
         .await;
 
