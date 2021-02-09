@@ -41,7 +41,6 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(NormalizePath::default())
             .wrap(Logger::default())
-            .wrap(Logger::new("%a %{User-Agent}i"))
             .app_data(json_config.clone())
             .data(pool.clone())
             .service(article::get_full_article)
