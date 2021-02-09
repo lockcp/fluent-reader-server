@@ -43,15 +43,17 @@ CREATE TABLE article (
     unique_words JSONB NOT NULL,
     created_on TIMESTAMP NOT NULL,
     is_system BOOLEAN NOT NULL,
+    is_private BOOLEAN NOT NULL,
     uploader_id INTEGER NOT NULL,
     FOREIGN KEY (uploader_id) REFERENCES fruser(id),
     lang VARCHAR(6) NOT NULL,
     tags VARCHAR[] NOT NULL
 );
 
-CREATE TABLE saved_articles (
+CREATE TABLE saved_article (
     fruser_id INTEGER NOT NULL,
     FOREIGN KEY (fruser_id) REFERENCES fruser(id),
     article_id INTEGER NOT NULL,
-    FOREIGN KEY (article_id) REFERENCES article(id)
+    FOREIGN KEY (article_id) REFERENCES article(id),
+    saved_on TIMESTAMP NOT NULL
 );
