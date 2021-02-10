@@ -614,7 +614,8 @@ pub mod article {
 
         pub async fn get_user_uploaded_article_list(
             client: &Client,
-            user_id: &i32,
+            req_user_id: &i32,
+            want_user_id: &i32,
             offset: &i64,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
             let statement = client
@@ -622,17 +623,22 @@ pub mod article {
                     r#"
                     SELECT id, title, author, content_length, created_on, is_system, lang, tags 
                         FROM article 
-                    WHERE uploader_id = $1
+                    WHERE 
+                        uploader_id = $1 AND 
+                        ($2 OR NOT is_private)
                     ORDER BY created_on DESC 
                     LIMIT 10 
-                    OFFSET $2
+                    OFFSET $3
                 "#,
                 )
                 .await
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[user_id, offset])
+                .query(
+                    &statement,
+                    &[want_user_id, &(want_user_id == req_user_id), offset],
+                )
                 .await
                 .expect("Error getting articles")
                 .iter()
@@ -644,6 +650,7 @@ pub mod article {
 
         pub async fn get_all_user_uploaded_article_list(
             client: &Client,
+            req_user_id: &i32,
             offset: &i64,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
             let statement = client
@@ -651,17 +658,19 @@ pub mod article {
                     r#"
                     SELECT id, title, author, content_length, created_on, is_system, lang, tags 
                         FROM article 
-                    WHERE is_system = false
+                    WHERE 
+                        is_system = false AND
+                        (NOT is_private OR uploader_id = $1)                    
                     ORDER BY created_on DESC 
                     LIMIT 10 
-                    OFFSET $1
+                    OFFSET $2
                 "#,
                 )
                 .await
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[offset])
+                .query(&statement, &[req_user_id, offset])
                 .await
                 .expect("Error getting articles")
                 .iter()

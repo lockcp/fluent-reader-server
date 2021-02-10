@@ -5,6 +5,7 @@ mod handlers;
 mod lang;
 mod models;
 mod response;
+mod util;
 
 extern crate argon2;
 

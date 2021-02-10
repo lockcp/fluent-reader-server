@@ -3,6 +3,7 @@ use crate::db;
 use crate::lang;
 use crate::models::*;
 use crate::response::*;
+use crate::util::*;
 
 use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
@@ -31,12 +32,9 @@ pub mod user {
             }
         };
 
-        let offset = match query.offset {
-            Some(offset) => offset,
-            None => 0,
-        };
+        let offset = get_default_offset(&query.offset);
 
-        let result = db::user::get_users(&client, &offset).await;
+        let result = db::user::get_users(&client, offset).await;
 
         match result {
             Ok(users) => HttpResponse::Ok().json(GetUsersResponse::new(users)),
@@ -238,12 +236,9 @@ pub mod article {
                 }
             };
 
-            let offset = match query.offset {
-                Some(offset) => offset,
-                None => 0,
-            };
+            let offset = get_default_offset(&query.offset);
 
-            let result = db::article::system::get_system_article_list(&client, &offset).await;
+            let result = db::article::system::get_system_article_list(&client, offset).await;
 
             match result {
                 Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
@@ -294,18 +289,22 @@ pub mod article {
                 }
             };
 
-            let offset = match query.offset {
-                Some(offset) => offset,
-                None => 0,
-            };
+            let req_user_id = auth_user.id;
 
-            let user_id = match query.user_id {
+            let target_user_id = match query.user_id {
                 Some(user_id) => user_id,
                 None => auth_user.id,
             };
 
-            let result =
-                db::article::user::get_user_uploaded_article_list(&client, &user_id, &offset).await;
+            let offset = get_default_offset(&query.offset);
+
+            let result = db::article::user::get_user_uploaded_article_list(
+                &client,
+                &req_user_id,
+                &target_user_id,
+                offset,
+            )
+            .await;
 
             match result {
                 Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
@@ -317,7 +316,7 @@ pub mod article {
         pub async fn get_all_user_article_list(
             db_pool: web::Data<Pool>,
             query: web::Query<GetArticlesRequest>,
-            _auth_user: ClaimsUser,
+            auth_user: ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -327,13 +326,13 @@ pub mod article {
                 }
             };
 
-            let offset = match query.offset {
-                Some(offset) => offset,
-                None => 0,
-            };
+            let req_user_id = &auth_user.id;
+
+            let offset = get_default_offset(&query.offset);
 
             let result =
-                db::article::user::get_all_user_uploaded_article_list(&client, &offset).await;
+                db::article::user::get_all_user_uploaded_article_list(&client, req_user_id, offset)
+                    .await;
 
             match result {
                 Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
@@ -381,13 +380,10 @@ pub mod article {
                 }
             };
 
-            let offset = match query.offset {
-                Some(offset) => offset,
-                None => 0,
-            };
+            let offset = get_default_offset(&query.offset);
 
             let result =
-                db::article::user::get_user_saved_article_list(&client, &auth_user.id, &offset)
+                db::article::user::get_user_saved_article_list(&client, &auth_user.id, offset)
                     .await;
 
             match result {
