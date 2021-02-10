@@ -1,3 +1,5 @@
 /target
 *.env
 postgres-data
+node_modules
+.husky
