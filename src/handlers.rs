@@ -280,7 +280,7 @@ pub mod article {
     pub mod user {
         use super::*;
 
-        #[get("/article/user/uploaded/{user_id}")]
+        #[get("/article/user/uploaded/{user_id}/")]
         pub async fn get_user_uploaded_articles(
             db_pool: web::Data<Pool>,
             web::Path(user_id_opt): web::Path<Option<i32>>,
