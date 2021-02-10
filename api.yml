@@ -232,6 +232,7 @@ paths:
                 - title
                 - content
                 - language
+                - is_private
               properties:
                 title:
                   type: string
@@ -249,6 +250,8 @@ paths:
                   type: array
                   items:
                     type: string
+                is_private:
+                  type: boolean
       responses:
         "201":
           description: "Article creation successful"
@@ -514,6 +517,7 @@ components:
         - is_system
         - uploader_id
         - tags
+        - is_private
       properties:
         id:
           type: integer
@@ -538,6 +542,8 @@ components:
           type: array
           items:
             type: string
+        is_private:
+          type: boolean
     SimpleArticle:
       type: object
       required:
