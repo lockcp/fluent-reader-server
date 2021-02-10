@@ -309,6 +309,32 @@ pub mod article {
             }
         }
 
+        #[get("/article/user/{article_id}/")]
+        pub async fn get_full_article(
+            db_pool: web::Data<Pool>,
+            web::Path(article_id): web::Path<i32>,
+            auth_user: ClaimsUser,
+        ) -> impl Responder {
+            let client: Client = match db_pool.get().await {
+                Ok(client) => client,
+                Err(err) => {
+                    eprintln!("{}", err);
+                    return article_res::get_fetch_article_error();
+                }
+            };
+
+            let result =
+                db::article::user::get_user_article(&client, &article_id, &auth_user.id).await;
+
+            match result {
+                Ok(article_opt) => match article_opt {
+                    Some(article) => HttpResponse::Ok().json(GetFullArticleResponse::new(article)),
+                    None => article_res::get_article_not_found(),
+                },
+                Err(_) => article_res::get_fetch_article_error(),
+            }
+        }
+
         #[get("/article/user/saved/")]
         pub async fn get_saved_articles(
             db_pool: web::Data<Pool>,
@@ -335,32 +361,6 @@ pub mod article {
             match result {
                 Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
                 Err(_) => article_res::get_fetch_articles_error(),
-            }
-        }
-
-        #[get("/article/user/saved/{article_id}/")]
-        pub async fn get_full_article(
-            db_pool: web::Data<Pool>,
-            web::Path(article_id): web::Path<i32>,
-            auth_user: ClaimsUser,
-        ) -> impl Responder {
-            let client: Client = match db_pool.get().await {
-                Ok(client) => client,
-                Err(err) => {
-                    eprintln!("{}", err);
-                    return article_res::get_fetch_article_error();
-                }
-            };
-
-            let result =
-                db::article::user::get_user_article(&client, &article_id, &auth_user.id).await;
-
-            match result {
-                Ok(article_opt) => match article_opt {
-                    Some(article) => HttpResponse::Ok().json(GetFullArticleResponse::new(article)),
-                    None => article_res::get_article_not_found(),
-                },
-                Err(_) => article_res::get_fetch_article_error(),
             }
         }
 
