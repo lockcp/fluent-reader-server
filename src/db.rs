@@ -519,17 +519,31 @@ pub mod article {
             user_id: &i32,
             article_id: &i32,
         ) -> Result<(), &'static str> {
-            let statement = client
+            let insert_statement = client
                 .prepare(
                     r#"
                     INSERT INTO saved_article (fruser_id, article_id, saved_on)
-                    VALUES ($1, $2, NOW())
+                    VALUES 
+                    (
+                        $1, 
+                        (
+                            SELECT id 
+                            FROM article
+                            WHERE 
+                                id = $2 AND
+                                (
+                                    NOT is_private OR 
+                                    uploader_id = $1
+                                )
+                        ), 
+                        NOW()
+                    )
                 "#,
                 )
                 .await
                 .unwrap();
 
-            match client.execute(&statement, &[user_id, article_id]).await {
+            match client.execute(&insert_statement, &[user_id, article_id]).await {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
