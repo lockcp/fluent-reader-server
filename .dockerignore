@@ -7,3 +7,4 @@ Cargo.toml
 database.sql
 docker-compose.yml
 Dockerfile
+notes.txt
