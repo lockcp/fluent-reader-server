@@ -174,9 +174,10 @@ pub mod user {
             new_status: &String,
         ) -> Result<(), &'static str> {
             let statement_result = match &new_status[..] {
-                 "known" => client
-                    .prepare_typed(
-                        r#"
+                "known" => {
+                    client
+                        .prepare_typed(
+                            r#"
                             UPDATE user_word_data
                             SET word_status_data = 
                                 jsonb_set(
@@ -188,12 +189,17 @@ pub mod user {
                                 )
                             WHERE fruser_id = $3;
                         "#,
-                        &[tokio_postgres::types::Type::TEXT, tokio_postgres::types::Type::TEXT]
-                    )
-                    .await,
-                 "learning" => client
-                    .prepare_typed(
-                        r#"
+                            &[
+                                tokio_postgres::types::Type::TEXT,
+                                tokio_postgres::types::Type::TEXT,
+                            ],
+                        )
+                        .await
+                }
+                "learning" => {
+                    client
+                        .prepare_typed(
+                            r#"
                             UPDATE user_word_data
                             SET word_status_data = 
                                 jsonb_set(
@@ -205,22 +211,31 @@ pub mod user {
                                 )
                             WHERE fruser_id = $3;
                         "#,
-                        &[tokio_postgres::types::Type::TEXT, tokio_postgres::types::Type::TEXT]
-                    )
-                    .await,
-                 "new" => client
-                    .prepare_typed(
-                        r#"
+                            &[
+                                tokio_postgres::types::Type::TEXT,
+                                tokio_postgres::types::Type::TEXT,
+                            ],
+                        )
+                        .await
+                }
+                "new" => {
+                    client
+                        .prepare_typed(
+                            r#"
                             UPDATE user_word_data
                             SET word_status_data = word_status_data 
                                 #- CAST(FORMAT('{%s, known, %s}', $1, $2) AS TEXT[])
                                 #- CAST(FORMAT('{%s, learning, %s}', $1, $2) AS TEXT[])
                             WHERE fruser_id = $3
                         "#,
-                        &[tokio_postgres::types::Type::TEXT, tokio_postgres::types::Type::TEXT]
-                    )
-                    .await,
-                 _ => return Err("Invalid status")
+                            &[
+                                tokio_postgres::types::Type::TEXT,
+                                tokio_postgres::types::Type::TEXT,
+                            ],
+                        )
+                        .await
+                }
+                _ => return Err("Invalid status"),
             };
 
             let statement = match statement_result {
@@ -231,7 +246,7 @@ pub mod user {
                 }
             };
 
-            match client.execute(&statement, &[lang, word, user_id], ).await {
+            match client.execute(&statement, &[lang, word, user_id]).await {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
@@ -259,7 +274,11 @@ pub mod user {
                             )
                         WHERE fruser_id = $4
                 "#,
-                &[tokio_postgres::types::Type::TEXT, tokio_postgres::types::Type::TEXT, tokio_postgres::types::Type::TEXT]
+                    &[
+                        tokio_postgres::types::Type::TEXT,
+                        tokio_postgres::types::Type::TEXT,
+                        tokio_postgres::types::Type::TEXT,
+                    ],
                 )
                 .await
             {
@@ -270,7 +289,10 @@ pub mod user {
                 }
             };
 
-            match client.execute(&statement, &[lang, word, definition, user_id]).await {
+            match client
+                .execute(&statement, &[lang, word, definition, user_id])
+                .await
+            {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);

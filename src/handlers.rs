@@ -402,12 +402,9 @@ pub mod article {
                 }
             };
 
-            let result = db::article::user::user_delete_saved_article(
-                &client,
-                &auth_user.id,
-                &article_id,
-            )
-            .await;
+            let result =
+                db::article::user::user_delete_saved_article(&client, &auth_user.id, &article_id)
+                    .await;
 
             match result {
                 Ok(()) => get_success(),
