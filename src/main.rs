@@ -53,6 +53,7 @@ async fn main() -> std::io::Result<()> {
             .service(article::system::get_articles)
             .service(article::system::get_full_article)
             .service(article::user::get_user_uploaded_articles)
+            .service(article::user::get_user_uploaded_articles_all)
             .service(article::user::get_saved_articles)
             .service(article::user::get_full_article)
             .service(article::user::save_article)
