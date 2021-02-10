@@ -173,37 +173,51 @@ pub mod user {
             word: &String,
             new_status: &String,
         ) -> Result<(), &'static str> {
-            // TODO: figure out how to properly inject word/lang strings into sql query without format!
-            // the client's prepare statement doesn't seem to recognize $n tokens inside JSON literals at the moment
             let statement_result = match &new_status[..] {
                  "known" => client
-                    .prepare(
-                        &format!(
-                            r#"
+                    .prepare_typed(
+                        r#"
                             UPDATE user_word_data
-                            SET word_status_data = jsonb_set((word_status_data #- '{{{}, learning, {}}}'), '{{{}, known, {}}}', '1')
-                            WHERE fruser_id = $1
-                        "#, lang, word, lang, word)[..]
+                            SET word_status_data = 
+                                jsonb_set(
+                                    (word_status_data #- 
+                                        CAST(FORMAT('{%s, learning, %s}', $1, $2) AS TEXT[])
+                                    ), 
+                                    CAST(FORMAT('{%s, known, %s}', $1, $2) AS TEXT[]),
+                                    '1'
+                                )
+                            WHERE fruser_id = $3;
+                        "#,
+                        &[tokio_postgres::types::Type::TEXT, tokio_postgres::types::Type::TEXT]
                     )
                     .await,
                  "learning" => client
-                    .prepare(
-                        &format!(
+                    .prepare_typed(
                         r#"
-                        UPDATE user_word_data
-                        SET word_status_data = jsonb_set((word_status_data #- '{{{}, known, {}}}'), '{{{}, learning, {}}}', '1')
-                        WHERE fruser_id = $1
-                        "#, lang, word, lang, word)[..]
+                            UPDATE user_word_data
+                            SET word_status_data = 
+                                jsonb_set(
+                                    (word_status_data #- 
+                                        CAST(FORMAT('{%s, known, %s}', $1, $2) AS TEXT[])
+                                    ), 
+                                    CAST(FORMAT('{%s, learning, %s}', $1, $2) AS TEXT[]),
+                                    '1'
+                                )
+                            WHERE fruser_id = $3;
+                        "#,
+                        &[tokio_postgres::types::Type::TEXT, tokio_postgres::types::Type::TEXT]
                     )
                     .await,
                  "new" => client
-                    .prepare(
-                        &format!(
+                    .prepare_typed(
                         r#"
-                        UPDATE user_word_data
-                        SET word_status_data = word_status_data #- '{{{}, known, {}}}' #- '{{{}, learning, {}}}'
-                        WHERE fruser_id = $1
-                    "#, lang, word, lang, word)[..]
+                            UPDATE user_word_data
+                            SET word_status_data = word_status_data 
+                                #- CAST(FORMAT('{%s, known, %s}', $1, $2) AS TEXT[])
+                                #- CAST(FORMAT('{%s, learning, %s}', $1, $2) AS TEXT[])
+                            WHERE fruser_id = $3
+                        "#,
+                        &[tokio_postgres::types::Type::TEXT, tokio_postgres::types::Type::TEXT]
                     )
                     .await,
                  _ => return Err("Invalid status")
@@ -217,7 +231,7 @@ pub mod user {
                 }
             };
 
-            match client.execute(&statement, &[user_id]).await {
+            match client.execute(&statement, &[lang, word, user_id], ).await {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
@@ -233,16 +247,19 @@ pub mod user {
             word: &String,
             definition: &String,
         ) -> Result<(), &'static str> {
-            // TODO: figure out how to properly inject word/lang strings into sql query without format!
-            // the client's prepare statement doesn't seem to recognize $n tokens inside JSON literals at the moment
             let statement = match client
-                .prepare(
-                    &format!(
+                .prepare_typed(
                     r#"
-                    UPDATE user_word_data
-                    SET word_definition_data = jsonb_set(word_definition_data, '{{ {}, {} }}', jsonb '"{}"')
-                    WHERE fruser_id = $1
-                "#, lang, word, definition)[..]
+                        UPDATE user_word_data
+                        SET word_definition_data = 
+                            jsonb_set(
+                                word_definition_data, 
+                                CAST(FORMAT('{ %s, %s }', $1, $2) AS TEXT[]), 
+                                FORMAT('"%s"', $3)::jsonb
+                            )
+                        WHERE fruser_id = $4
+                "#,
+                &[tokio_postgres::types::Type::TEXT, tokio_postgres::types::Type::TEXT, tokio_postgres::types::Type::TEXT]
                 )
                 .await
             {
@@ -253,7 +270,7 @@ pub mod user {
                 }
             };
 
-            match client.execute(&statement, &[user_id]).await {
+            match client.execute(&statement, &[lang, word, definition, user_id]).await {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
