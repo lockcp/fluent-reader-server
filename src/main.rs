@@ -56,7 +56,7 @@ async fn main() -> std::io::Result<()> {
             .service(article::user::get_saved_articles)
             .service(article::user::get_full_article)
             .service(article::user::save_article)
-            .service(article::user::removed_saved_article)
+            .service(article::user::remove_saved_article)
             .service(status)
     })
     .bind(address)?

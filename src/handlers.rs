@@ -388,8 +388,8 @@ pub mod article {
             }
         }
 
-        #[delete("/article/user/saved/{article_id}")]
-        pub async fn removed_saved_article(
+        #[delete("/article/user/saved/{article_id}/")]
+        pub async fn remove_saved_article(
             db_pool: web::Data<Pool>,
             web::Path(article_id): web::Path<i32>,
             auth_user: ClaimsUser,
