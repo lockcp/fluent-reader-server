@@ -9,7 +9,8 @@
     "lint-staged": "^10.5.4"
   },
   "scripts": {
-    "postinstall": "husky install && husky add .husky/pre-commit \"yarn lint-staged\""
+    "postinstall": "husky install && husky add .husky/pre-commit \"yarn lint-staged\"",
+    "deploy": "git pull; cargo build --release; docker-compose down; docker-compose build; docker-compose up -d;"
   },
   "lint-staged": {
     "src/**/*.rs": "cargo fmt -- "
