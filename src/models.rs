@@ -286,6 +286,13 @@ impl NewArticleResponse {
     }
 }
 
+// get user uploaded article list
+#[derive(Deserialize)]
+pub struct GetUserArticlesRequest {
+    pub offset: Option<i64>,
+    pub user_id: Option<i32>
+}
+
 // Word Data
 
 #[derive(Deserialize)]

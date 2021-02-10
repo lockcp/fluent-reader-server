@@ -224,7 +224,7 @@ pub mod article {
     pub mod system {
         use super::*;
 
-        #[get("/article/system/")]
+        #[get("/article/system/list/")]
         pub async fn get_articles(
             db_pool: web::Data<Pool>,
             query: web::Query<GetArticlesRequest>,
@@ -251,7 +251,7 @@ pub mod article {
             }
         }
 
-        #[get("/article/system/{article_id}/")]
+        #[get("/article/system/single/{article_id}/")]
         pub async fn get_full_article(
             db_pool: web::Data<Pool>,
             web::Path(article_id): web::Path<i32>,
@@ -280,11 +280,10 @@ pub mod article {
     pub mod user {
         use super::*;
 
-        #[get("/article/user/uploaded/{user_id}/")]
-        pub async fn get_user_uploaded_articles(
+        #[get("/article/user/list/")]
+        pub async fn get_single_user_article_list(
             db_pool: web::Data<Pool>,
-            web::Path(user_id_opt): web::Path<Option<i32>>,
-            query: web::Query<GetArticlesRequest>,
+            query: web::Query<GetUserArticlesRequest>,
             auth_user: ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
@@ -300,7 +299,7 @@ pub mod article {
                 None => 0,
             };
 
-            let user_id = match user_id_opt {
+            let user_id = match query.user_id {
                 Some(user_id) => user_id,
                 None => auth_user.id,
             };
@@ -314,8 +313,8 @@ pub mod article {
             }
         }
 
-        #[get("/article/user/uploaded/all/")]
-        pub async fn get_user_uploaded_articles_all(
+        #[get("/article/user/all/list/")]
+        pub async fn get_all_user_article_list(
             db_pool: web::Data<Pool>,
             query: web::Query<GetArticlesRequest>,
             _auth_user: ClaimsUser,
@@ -342,7 +341,7 @@ pub mod article {
             }
         }
 
-        #[get("/article/user/{article_id}/")]
+        #[get("/article/user/single/{article_id}/")]
         pub async fn get_full_article(
             db_pool: web::Data<Pool>,
             web::Path(article_id): web::Path<i32>,
@@ -368,8 +367,8 @@ pub mod article {
             }
         }
 
-        #[get("/article/user/saved/")]
-        pub async fn get_saved_articles(
+        #[get("/article/user/saved/list/")]
+        pub async fn get_saved_article_list(
             db_pool: web::Data<Pool>,
             query: web::Query<GetArticlesRequest>,
             auth_user: ClaimsUser,
@@ -397,7 +396,7 @@ pub mod article {
             }
         }
 
-        #[put("/article/user/saved/")]
+        #[put("/article/user/saved/single/")]
         pub async fn save_article(
             db_pool: web::Data<Pool>,
             json: web::Json<ArticleRequest>,
@@ -421,10 +420,10 @@ pub mod article {
             }
         }
 
-        #[delete("/article/user/saved/{article_id}/")]
+        #[delete("/article/user/saved/single/")]
         pub async fn remove_saved_article(
             db_pool: web::Data<Pool>,
-            web::Path(article_id): web::Path<i32>,
+            json: web::Json<ArticleRequest>,
             auth_user: ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
@@ -435,9 +434,12 @@ pub mod article {
                 }
             };
 
-            let result =
-                db::article::user::user_delete_saved_article(&client, &auth_user.id, &article_id)
-                    .await;
+            let result = db::article::user::user_delete_saved_article(
+                &client,
+                &auth_user.id,
+                &json.article_id,
+            )
+            .await;
 
             match result {
                 Ok(()) => get_success(),
