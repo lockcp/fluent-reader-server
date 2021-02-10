@@ -388,10 +388,10 @@ pub mod article {
             }
         }
 
-        #[delete("/article/user/saved/")]
+        #[delete("/article/user/saved/{article_id}")]
         pub async fn removed_saved_article(
             db_pool: web::Data<Pool>,
-            json: web::Json<ArticleRequest>,
+            web::Path(article_id): web::Path<i32>,
             auth_user: ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
@@ -405,7 +405,7 @@ pub mod article {
             let result = db::article::user::user_delete_saved_article(
                 &client,
                 &auth_user.id,
-                &json.article_id,
+                &article_id,
             )
             .await;
 
