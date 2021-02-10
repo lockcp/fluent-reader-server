@@ -280,9 +280,10 @@ pub mod article {
     pub mod user {
         use super::*;
 
-        #[get("/article/user/uploaded/")]
+        #[get("/article/user/uploaded/{user_id}")]
         pub async fn get_user_uploaded_articles(
             db_pool: web::Data<Pool>,
+            web::Path(user_id_opt): web::Path<Option<i32>>,
             query: web::Query<GetArticlesRequest>,
             auth_user: ClaimsUser,
         ) -> impl Responder {
@@ -299,9 +300,41 @@ pub mod article {
                 None => 0,
             };
 
+            let user_id = match user_id_opt {
+                Some(user_id) => user_id,
+                None => auth_user.id,
+            };
+
             let result =
-                db::article::user::get_user_uploaded_article_list(&client, &auth_user.id, &offset)
-                    .await;
+                db::article::user::get_user_uploaded_article_list(&client, &user_id, &offset).await;
+
+            match result {
+                Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
+                Err(_) => article_res::get_fetch_articles_error(),
+            }
+        }
+
+        #[get("/article/user/uploaded/all/")]
+        pub async fn get_user_uploaded_articles_all(
+            db_pool: web::Data<Pool>,
+            query: web::Query<GetArticlesRequest>,
+            _auth_user: ClaimsUser,
+        ) -> impl Responder {
+            let client: Client = match db_pool.get().await {
+                Ok(client) => client,
+                Err(err) => {
+                    eprintln!("{}", err);
+                    return article_res::get_fetch_articles_error();
+                }
+            };
+
+            let offset = match query.offset {
+                Some(offset) => offset,
+                None => 0,
+            };
+
+            let result =
+                db::article::user::get_all_user_uploaded_article_list(&client, &offset).await;
 
             match result {
                 Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),

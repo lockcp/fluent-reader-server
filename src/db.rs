@@ -544,7 +544,10 @@ pub mod article {
                 .await
                 .unwrap();
 
-            match client.execute(&insert_statement, &[user_id, article_id]).await {
+            match client
+                .execute(&insert_statement, &[user_id, article_id])
+                .await
+            {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
@@ -630,6 +633,35 @@ pub mod article {
 
             let articles = client
                 .query(&statement, &[user_id, offset])
+                .await
+                .expect("Error getting articles")
+                .iter()
+                .map(|row| SimpleArticle::from_row_ref(row).unwrap())
+                .collect::<Vec<SimpleArticle>>();
+
+            Ok(articles)
+        }
+
+        pub async fn get_all_user_uploaded_article_list(
+            client: &Client,
+            offset: &i64,
+        ) -> Result<Vec<SimpleArticle>, io::Error> {
+            let statement = client
+                .prepare(
+                    r#"
+                    SELECT id, title, author, content_length, created_on, is_system, lang, tags 
+                        FROM article 
+                    WHERE is_system = false
+                    ORDER BY created_on DESC 
+                    LIMIT 10 
+                    OFFSET $1
+                "#,
+                )
+                .await
+                .unwrap();
+
+            let articles = client
+                .query(&statement, &[offset])
                 .await
                 .expect("Error getting articles")
                 .iter()
