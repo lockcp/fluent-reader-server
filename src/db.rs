@@ -490,7 +490,8 @@ pub mod article {
                         FROM article 
                     WHERE 
                         id = $1 AND 
-                        (NOT is_private OR uploader_id = $2)
+                        (NOT is_private OR uploader_id = $2) AND
+                        is_system = false
                 "#,
                 )
                 .await
