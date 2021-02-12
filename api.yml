@@ -276,6 +276,12 @@ paths:
           schema:
             type: integer
             format: int32
+        - name: lang
+          in: query
+          description: The language of the returned articles, either zh or en
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: "Successful fetch of article list"
@@ -325,6 +331,12 @@ paths:
           schema:
             type: integer
             format: int32
+        - name: lang
+          in: query
+          description: The language of the returned articles, either zh or en
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: "Successful fetch of article list"
@@ -346,6 +358,12 @@ paths:
           schema:
             type: integer
             format: int32
+        - name: lang
+          in: query
+          description: The language of the returned articles, either zh or en
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: "Successful fetch of article list"
@@ -388,6 +406,12 @@ paths:
           schema:
             type: integer
             format: int32
+        - name: lang
+          in: query
+          description: The language of the returned articles, either zh or en
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: "Successful fetch of article list"
@@ -446,7 +470,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Message" 
-  
 components:
   schemas:
     User:
