@@ -47,8 +47,12 @@ CREATE TABLE article (
     uploader_id INTEGER NOT NULL,
     FOREIGN KEY (uploader_id) REFERENCES fruser(id),
     lang VARCHAR(6) NOT NULL,
-    tags VARCHAR[] NOT NULL
+    tags VARCHAR(50)[] NOT NULL
 );
+
+CREATE INDEX article_content_index ON article USING pgroonga (content);
+CREATE INDEX article_tag_index ON article USING pgroonga (tags);
+CREATE INDEX article_lang_index ON article USING HASH (lang);
 
 CREATE TABLE saved_article (
     fruser_id INTEGER NOT NULL,
