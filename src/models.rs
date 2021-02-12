@@ -294,6 +294,7 @@ pub struct GetUserArticlesRequest {
     pub offset: Option<i64>,
     pub user_id: Option<i32>,
     pub lang: Option<String>,
+    pub search: Option<String>,
 }
 
 // Word Data

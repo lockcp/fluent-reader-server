@@ -306,12 +306,15 @@ pub mod article {
 
             let offset = util::get_default_offset(&query.offset);
 
+            let search_query_opt = lang::get_or_query_string(&query.search, &query.lang);
+
             let result = db::article::user::get_user_uploaded_article_list(
                 &client,
                 &req_user_id,
                 &target_user_id,
                 offset,
                 &query.lang,
+                &search_query_opt,
             )
             .await;
 
@@ -339,11 +342,14 @@ pub mod article {
 
             let offset = util::get_default_offset(&query.offset);
 
+            let search_query_opt = lang::get_or_query_string(&query.search, &query.lang);
+
             let result = db::article::user::get_all_user_uploaded_article_list(
                 &client,
                 req_user_id,
                 offset,
                 &query.lang,
+                &search_query_opt,
             )
             .await;
 
@@ -395,11 +401,14 @@ pub mod article {
 
             let offset = util::get_default_offset(&query.offset);
 
+            let search_query_opt = lang::get_or_query_string(&query.search, &query.lang);
+
             let result = db::article::user::get_user_saved_article_list(
                 &client,
                 &auth_user.id,
                 offset,
                 &query.lang,
+                &search_query_opt,
             )
             .await;
 
