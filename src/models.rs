@@ -225,6 +225,7 @@ impl GetWordDataResponse {
 #[derive(Deserialize)]
 pub struct GetArticlesRequest {
     pub offset: Option<i64>,
+    pub lang: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -291,6 +292,7 @@ impl NewArticleResponse {
 pub struct GetUserArticlesRequest {
     pub offset: Option<i64>,
     pub user_id: Option<i32>,
+    pub lang: Option<String>,
 }
 
 // Word Data

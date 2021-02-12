@@ -238,7 +238,8 @@ pub mod article {
 
             let offset = get_default_offset(&query.offset);
 
-            let result = db::article::system::get_system_article_list(&client, offset).await;
+            let result =
+                db::article::system::get_system_article_list(&client, offset, &query.lang).await;
 
             match result {
                 Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
@@ -303,6 +304,7 @@ pub mod article {
                 &req_user_id,
                 &target_user_id,
                 offset,
+                &query.lang,
             )
             .await;
 
@@ -330,9 +332,13 @@ pub mod article {
 
             let offset = get_default_offset(&query.offset);
 
-            let result =
-                db::article::user::get_all_user_uploaded_article_list(&client, req_user_id, offset)
-                    .await;
+            let result = db::article::user::get_all_user_uploaded_article_list(
+                &client,
+                req_user_id,
+                offset,
+                &query.lang,
+            )
+            .await;
 
             match result {
                 Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
@@ -382,9 +388,13 @@ pub mod article {
 
             let offset = get_default_offset(&query.offset);
 
-            let result =
-                db::article::user::get_user_saved_article_list(&client, &auth_user.id, offset)
-                    .await;
+            let result = db::article::user::get_user_saved_article_list(
+                &client,
+                &auth_user.id,
+                offset,
+                &query.lang,
+            )
+            .await;
 
             match result {
                 Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),

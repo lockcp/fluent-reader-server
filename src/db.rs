@@ -448,23 +448,27 @@ pub mod article {
         pub async fn get_system_article_list(
             client: &Client,
             offset: &i64,
+            lang: &Option<String>,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
             let statement = client
                 .prepare(
                     r#"
                     SELECT id, title, author, content_length, created_on, is_system, lang, tags 
                         FROM article 
-                    WHERE is_system = true AND is_private = false
+                    WHERE 
+                        is_system = true AND 
+                        is_private = false AND
+                        COALESCE(lang = $1, TRUE)
                     ORDER BY created_on DESC 
                     LIMIT 10 
-                    OFFSET $1
+                    OFFSET $2
                 "#,
                 )
                 .await
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[offset])
+                .query(&statement, &[lang, offset])
                 .await
                 .expect("Error getting articles")
                 .iter()
@@ -584,6 +588,7 @@ pub mod article {
             client: &Client,
             user_id: &i32,
             offset: &i64,
+            lang: &Option<String>,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
             let statement = client
                 .prepare(
@@ -592,17 +597,20 @@ pub mod article {
                         FROM saved_article AS s
                         INNER JOIN article AS a
                             ON a.id = s.article_id
-                    WHERE s.fruser_id = $1 AND (NOT a.is_private OR a.uploader_id = $1)
+                    WHERE 
+                        s.fruser_id = $1 AND 
+                        (NOT a.is_private OR a.uploader_id = $1) AND
+                        COALESCE(lang = $2, TRUE)
                     ORDER BY s.saved_on DESC
                     LIMIT 10 
-                    OFFSET $2
+                    OFFSET $3
                 "#,
                 )
                 .await
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[user_id, offset])
+                .query(&statement, &[user_id, lang, offset])
                 .await
                 .expect("Error getting articles")
                 .iter()
@@ -617,6 +625,7 @@ pub mod article {
             req_user_id: &i32,
             want_user_id: &i32,
             offset: &i64,
+            lang: &Option<String>,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
             let statement = client
                 .prepare(
@@ -625,10 +634,11 @@ pub mod article {
                         FROM article 
                     WHERE 
                         uploader_id = $1 AND 
-                        ($2 OR NOT is_private)
+                        ($2 OR NOT is_private) AND
+                        COALESCE(lang = $3, TRUE)
                     ORDER BY created_on DESC 
                     LIMIT 10 
-                    OFFSET $3
+                    OFFSET $4
                 "#,
                 )
                 .await
@@ -637,7 +647,7 @@ pub mod article {
             let articles = client
                 .query(
                     &statement,
-                    &[want_user_id, &(want_user_id == req_user_id), offset],
+                    &[want_user_id, &(want_user_id == req_user_id), lang, offset],
                 )
                 .await
                 .expect("Error getting articles")
@@ -652,6 +662,7 @@ pub mod article {
             client: &Client,
             req_user_id: &i32,
             offset: &i64,
+            lang: &Option<String>,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
             let statement = client
                 .prepare(
@@ -660,17 +671,18 @@ pub mod article {
                         FROM article 
                     WHERE 
                         is_system = false AND
-                        (NOT is_private OR uploader_id = $1)                    
+                        (NOT is_private OR uploader_id = $1) AND
+                        COALESCE(lang = $2, TRUE)
                     ORDER BY created_on DESC 
                     LIMIT 10 
-                    OFFSET $2
+                    OFFSET $3
                 "#,
                 )
                 .await
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[req_user_id, offset])
+                .query(&statement, &[req_user_id, lang, offset])
                 .await
                 .expect("Error getting articles")
                 .iter()
