@@ -7,6 +7,12 @@ DROP DATABASE fr;
 CREATE DATABASE fr WITH ENCODING 'UTF8';
 \c fr;
 
+/*
+    Extension Creation
+*/
+
+CREATE EXTENSION prgoonga;
+
 /* 
     Table Creation
 */
@@ -50,7 +56,7 @@ CREATE TABLE article (
     tags VARCHAR(50)[] NOT NULL
 );
 
-CREATE INDEX article_content_index ON article USING pgroonga (content);
+CREATE INDEX article_title_index ON article USING pgroonga (title);
 CREATE INDEX article_tag_index ON article USING pgroonga (tags);
 CREATE INDEX article_lang_index ON article USING HASH (lang);
 
