@@ -3,7 +3,7 @@ use crate::db;
 use crate::lang;
 use crate::models::*;
 use crate::response::*;
-use crate::util::*;
+use crate::util;
 
 use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
@@ -32,7 +32,7 @@ pub mod user {
             }
         };
 
-        let offset = get_default_offset(&query.offset);
+        let offset = util::get_default_offset(&query.offset);
 
         let result = db::user::get_users(&client, offset).await;
 
@@ -236,7 +236,7 @@ pub mod article {
                 }
             };
 
-            let offset = get_default_offset(&query.offset);
+            let offset = util::get_default_offset(&query.offset);
 
             let search_query_opt = lang::get_or_query_string(&query.search, &query.lang);
 
@@ -304,7 +304,7 @@ pub mod article {
                 None => auth_user.id,
             };
 
-            let offset = get_default_offset(&query.offset);
+            let offset = util::get_default_offset(&query.offset);
 
             let result = db::article::user::get_user_uploaded_article_list(
                 &client,
@@ -337,7 +337,7 @@ pub mod article {
 
             let req_user_id = &auth_user.id;
 
-            let offset = get_default_offset(&query.offset);
+            let offset = util::get_default_offset(&query.offset);
 
             let result = db::article::user::get_all_user_uploaded_article_list(
                 &client,
@@ -393,7 +393,7 @@ pub mod article {
                 }
             };
 
-            let offset = get_default_offset(&query.offset);
+            let offset = util::get_default_offset(&query.offset);
 
             let result = db::article::user::get_user_saved_article_list(
                 &client,
