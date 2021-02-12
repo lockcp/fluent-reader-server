@@ -449,6 +449,7 @@ pub mod article {
             client: &Client,
             offset: &i64,
             lang: &Option<String>,
+            search: &Option<String>,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
             let statement = client
                 .prepare(
@@ -458,17 +459,18 @@ pub mod article {
                     WHERE 
                         is_system = true AND 
                         is_private = false AND
-                        COALESCE(lang = $1, TRUE)
+                        COALESCE(lang = $1, TRUE) AND
+                        COALESCE(title &@~ $2, TRUE)
                     ORDER BY created_on DESC 
                     LIMIT 10 
-                    OFFSET $2
+                    OFFSET $3
                 "#,
                 )
                 .await
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[lang, offset])
+                .query(&statement, &[lang, &search, offset])
                 .await
                 .expect("Error getting articles")
                 .iter()

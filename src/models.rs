@@ -226,6 +226,7 @@ impl GetWordDataResponse {
 pub struct GetArticlesRequest {
     pub offset: Option<i64>,
     pub lang: Option<String>,
+    pub search: Option<String>,
 }
 
 #[derive(Serialize)]

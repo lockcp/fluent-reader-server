@@ -238,8 +238,15 @@ pub mod article {
 
             let offset = get_default_offset(&query.offset);
 
-            let result =
-                db::article::system::get_system_article_list(&client, offset, &query.lang).await;
+            let search_query_opt = lang::get_or_query_string(&query.search, &query.lang);
+
+            let result = db::article::system::get_system_article_list(
+                &client,
+                offset,
+                &query.lang,
+                &search_query_opt,
+            )
+            .await;
 
             match result {
                 Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),

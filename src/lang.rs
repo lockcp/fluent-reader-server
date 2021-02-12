@@ -34,11 +34,11 @@ pub fn get_unique_words(words: &Vec<&str>) -> serde_json::Value {
     for word in words.iter() {
         let lowercase = word.to_lowercase();
         if map.contains_key(&lowercase) {
-            let current_value = map.get(&lowercase).unwrap().clone();
-            if let serde_json::Value::Number(num) = current_value {
-                map.insert(lowercase, json!(num.as_i64().unwrap() + 1i64));
-            } else {
-                panic!("Value stored in unique words map is not a number!");
+            match map.get(&lowercase).unwrap().clone() {
+                serde_json::Value::Number(num) => {
+                    map.insert(lowercase, json!(num.as_i64().unwrap() + 1i64));
+                }
+                _ => panic!("Value stored in unique words map is not a number!"),
             }
         } else {
             map.insert(lowercase, json!(1));
@@ -46,4 +46,26 @@ pub fn get_unique_words(words: &Vec<&str>) -> serde_json::Value {
     }
 
     unique_words
+}
+
+pub fn get_or_query_string(
+    string_opt: &Option<String>,
+    lang_opt: &Option<String>,
+) -> Option<String> {
+    match string_opt {
+        Some(ref string) => match lang_opt {
+            Some(ref lang) => Some(
+                get_words(&string[..], &lang[..])
+                    .iter()
+                    .filter_map(|&word| match word {
+                        " " => None,
+                        _ => Some(word),
+                    })
+                    .collect::<Vec<&str>>()
+                    .join(" OR "),
+            ),
+            None => None,
+        },
+        None => None,
+    }
 }
