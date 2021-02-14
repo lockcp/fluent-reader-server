@@ -11,7 +11,7 @@ CREATE DATABASE fr WITH ENCODING 'UTF8';
     Extension Creation
 */
 
-CREATE EXTENSION prgoonga;
+CREATE EXTENSION pgroonga;
 
 /* 
     Table Creation
