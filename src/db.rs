@@ -5,6 +5,7 @@ use std::io;
 use tokio_pg_mapper::FromTokioPostgresRow;
 use tokio_postgres::Statement;
 
+#[inline]
 fn get_article_query(from_clause: &str, where_clause: &str, order_by_clause: &str) -> String {
     format!(
         r#"
