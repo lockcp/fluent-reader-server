@@ -50,8 +50,6 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - username
               properties:
                 username:
                   type: string
@@ -62,6 +60,9 @@ paths:
                 native_lang:
                   type: string
                   description: A new native language setting
+                display_lang:
+                  type: string
+                  description: A new display language setting
       responses:
         "200":
           description: "User updated successfully"
@@ -532,6 +533,7 @@ components:
         - pass
         - created_on
         - native_lang
+        - display_lang
       properties:
         id:
           type: integer
@@ -544,6 +546,8 @@ components:
           $ref: "#/components/schemas/Timestamp"
         native_lang:
           type: string
+        display_lang:
+              type: string
     SimpleUser:
       type: object
       required:
