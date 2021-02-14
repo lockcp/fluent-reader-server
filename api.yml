@@ -282,6 +282,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: search
+          in: query
+          description: A search query to query the articles by title/tag. If this parameter is specified, lang must also be specified
+          required: false
+          schema:
+            type: string 
       responses:
         "200":
           description: "Successful fetch of article list"
@@ -337,6 +343,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: search
+          in: query
+          description: A search query to query the articles by title/tag. If this parameter is specified, lang must also be specified
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: "Successful fetch of article list"
@@ -361,6 +373,12 @@ paths:
         - name: lang
           in: query
           description: The language of the returned articles, either zh or en
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: A search query to query the articles by title/tag. If this parameter is specified, lang must also be specified
           required: false
           schema:
             type: string
@@ -409,6 +427,12 @@ paths:
         - name: lang
           in: query
           description: The language of the returned articles, either zh or en
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: A search query to query the articles by title/tag. If this parameter is specified, lang must also be specified
           required: false
           schema:
             type: string
