@@ -32,12 +32,16 @@ CREATE TABLE fruser (
     native_lang VARCHAR(6)
 );
 
+CREATE INDEX fruser_index ON fruser(username);
+
 CREATE TABLE user_word_data (
     fruser_id INTEGER UNIQUE NOT NULL,
     FOREIGN KEY (fruser_id) REFERENCES fruser(id),
     word_status_data JSONB NOT NULL,
     word_definition_data JSONB NOT NULL
 );
+
+CREATE INDEX word_data_user_index ON user_word_data(fruser_id);
 
 CREATE TABLE article (
     id SERIAL PRIMARY KEY,
@@ -58,6 +62,8 @@ CREATE TABLE article (
 
 CREATE INDEX article_title_index ON article USING pgroonga (title);
 CREATE INDEX article_tag_index ON article USING pgroonga (tags);
+CREATE INDEX article_author_index ON article USING pgroonga (author);
+CREATE INDEX article_uploader_index ON article(uploader_id);
 CREATE INDEX article_lang_index ON article USING HASH (lang);
 
 CREATE TABLE saved_article (
@@ -68,3 +74,6 @@ CREATE TABLE saved_article (
     saved_on TIMESTAMP NOT NULL,
     PRIMARY KEY(fruser_id, article_id)
 );
+
+CREATE INDEX saved_article_user_index ON saved_article(fruser_id);
+CREATE INDEX saved_article_article_index ON saved_article(article_id);
