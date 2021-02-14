@@ -60,6 +60,7 @@ CREATE TABLE article (
     tags VARCHAR(50)[] NOT NULL
 );
 
+CREATE INDEX article_id_index ON article(id);
 CREATE INDEX article_title_index ON article USING pgroonga (title);
 CREATE INDEX article_tag_index ON article USING pgroonga (tags);
 CREATE INDEX article_author_index ON article USING pgroonga (author);
