@@ -451,26 +451,37 @@ pub mod article {
             lang: &Option<String>,
             search: &Option<String>,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
+            let order_by_str = if search.is_some() {
+                "pgroonga_score(tableoid, ctid)"
+            } else {
+                "created_on"
+            };
+
             let statement = client
-                .prepare(
-                    r#"
-                    SELECT id, title, author, content_length, created_on, is_system, lang, tags 
-                        FROM article 
-                    WHERE 
-                        is_system = true AND 
-                        is_private = false AND
-                        COALESCE(lang = $1, TRUE) AND
-                        COALESCE(title &@~ $2, TRUE)
-                    ORDER BY created_on DESC 
-                    LIMIT 10 
-                    OFFSET $3
-                "#,
+                .prepare_typed(
+                    &format!(
+                        r#"
+                            SELECT 
+                                id, title, author, content_length, created_on, is_system, lang, tags
+                                FROM article 
+                            WHERE 
+                                is_system = true AND 
+                                is_private = false AND
+                                COALESCE(lang = $2, TRUE) AND
+                                COALESCE(title &@~ $1, TRUE)
+                            ORDER BY {} DESC 
+                            LIMIT 10 
+                            OFFSET $3
+                        "#,
+                        order_by_str
+                    )[..],
+                    &[tokio_postgres::types::Type::TEXT],
                 )
                 .await
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[lang, &search, offset])
+                .query(&statement, &[search, lang, offset])
                 .await
                 .expect("Error getting articles")
                 .iter()
@@ -593,22 +604,31 @@ pub mod article {
             lang: &Option<String>,
             search: &Option<String>,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
+            let order_by_str = if search.is_some() {
+                "pgroonga_score(tableoid, ctid)"
+            } else {
+                "s.saved_on"
+            };
+
             let statement = client
                 .prepare(
-                    r#"
-                    SELECT id, title, author, content_length, created_on, is_system, lang, tags 
-                        FROM saved_article AS s
-                        INNER JOIN article AS a
-                            ON a.id = s.article_id
-                    WHERE 
-                        s.fruser_id = $1 AND 
-                        (NOT a.is_private OR a.uploader_id = $1) AND
-                        COALESCE(lang = $2, TRUE) AND
-                        COALESCE(title &@~ $3, TRUE)
-                    ORDER BY s.saved_on DESC
-                    LIMIT 10 
-                    OFFSET $4
-                "#,
+                    &format!(
+                        r#"
+                            SELECT id, title, author, content_length, created_on, is_system, lang, tags 
+                                FROM saved_article AS s
+                                INNER JOIN article AS a
+                                    ON a.id = s.article_id
+                            WHERE 
+                                s.fruser_id = $1 AND 
+                                (NOT a.is_private OR a.uploader_id = $1) AND
+                                COALESCE(lang = $2, TRUE) AND
+                                COALESCE(title &@~ $3, TRUE)
+                            ORDER BY {} DESC
+                            LIMIT 10 
+                            OFFSET $4
+                        "#, 
+                        order_by_str
+                    )[..]
                 )
                 .await
                 .unwrap();
@@ -632,20 +652,29 @@ pub mod article {
             lang: &Option<String>,
             search: &Option<String>,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
+            let order_by_str = if search.is_some() {
+                "pgroonga_score(tableoid, ctid)"
+            } else {
+                "created_on"
+            };
+
             let statement = client
                 .prepare(
-                    r#"
-                    SELECT id, title, author, content_length, created_on, is_system, lang, tags 
-                        FROM article 
-                    WHERE 
-                        uploader_id = $1 AND 
-                        ($2 OR NOT is_private) AND
-                        COALESCE(lang = $3, TRUE) AND
-                        COALESCE(title &@~ $4, TRUE)
-                    ORDER BY created_on DESC 
-                    LIMIT 10 
-                    OFFSET $5
-                "#,
+                    &format!(
+                        r#"
+                            SELECT id, title, author, content_length, created_on, is_system, lang, tags 
+                                FROM article 
+                            WHERE 
+                                uploader_id = $1 AND 
+                                ($2 OR NOT is_private) AND
+                                COALESCE(lang = $3, TRUE) AND
+                                COALESCE(title &@~ $4, TRUE)
+                            ORDER BY {} DESC 
+                            LIMIT 10 
+                            OFFSET $5
+                        "#, 
+                        order_by_str
+                    )[..]
                 )
                 .await
                 .unwrap();
@@ -677,20 +706,29 @@ pub mod article {
             lang: &Option<String>,
             search: &Option<String>,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
+            let order_by_str = if search.is_some() {
+                "pgroonga_score(tableoid, ctid)"
+            } else {
+                "created_on"
+            };
+
             let statement = client
                 .prepare(
-                    r#"
-                    SELECT id, title, author, content_length, created_on, is_system, lang, tags 
-                        FROM article 
-                    WHERE 
-                        is_system = false AND
-                        (NOT is_private OR uploader_id = $1) AND
-                        COALESCE(lang = $2, TRUE) AND
-                        COALESCE(title &@~ $3, TRUE)
-                    ORDER BY created_on DESC 
-                    LIMIT 10 
-                    OFFSET $4
-                "#,
+                    &format!(
+                        r#"
+                            SELECT id, title, author, content_length, created_on, is_system, lang, tags 
+                                FROM article 
+                            WHERE 
+                                is_system = false AND
+                                (NOT is_private OR uploader_id = $1) AND
+                                COALESCE(lang = $2, TRUE) AND
+                                COALESCE(title &@~ $3, TRUE)
+                            ORDER BY {} DESC 
+                            LIMIT 10 
+                            OFFSET $4
+                        "#, 
+                        order_by_str
+                    )[..]
                 )
                 .await
                 .unwrap();
