@@ -11,7 +11,7 @@ paths:
       summary: "Returns a list of at most 10 users ordered by ascending id"
       operationId: getUserList
       tags:
-        - users
+        - user
       parameters:
         - name: offset
           in: query
@@ -41,6 +41,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+    patch:
+      summary: "Update a user's information"
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+              properties:
+                username:
+                  type: string
+                  description: A new username
+                password:
+                  type: string
+                  description: A new password
+                native_lang:
+                  type: string
+                  description: A new native language setting
+      responses:
+        "200":
+          description: "User updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message" 
   /user/log:
     post:
       summary: "Log into the system and get a token"
@@ -198,13 +226,13 @@ paths:
               required:
                 - lang
                 - word
-                - status
+                - definition
               properties:
                 lang:
                   type: string
                 word:
                   type: string
-                status:
+                definition:
                   type: string
       responses:
         "200":
