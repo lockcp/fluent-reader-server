@@ -5,6 +5,24 @@ use std::io;
 use tokio_pg_mapper::FromTokioPostgresRow;
 use tokio_postgres::Statement;
 
+fn get_article_query(from_clause: &str, where_clause: &str, order_by_clause: &str) -> String {
+    format!(
+        r#"
+            SELECT 
+                id, title, author, content_length, created_on, is_system, lang, tags
+                FROM {} 
+            WHERE 
+                COALESCE(lang = $1, TRUE) AND
+                COALESCE(title &@~ $2, TRUE)
+                {}
+            ORDER BY {} DESC 
+            LIMIT 10 
+            OFFSET $3
+        "#,
+        from_clause, where_clause, order_by_clause
+    )
+}
+
 pub mod user {
     use super::*;
 
@@ -459,29 +477,25 @@ pub mod article {
 
             let statement = client
                 .prepare_typed(
-                    &format!(
+                    &get_article_query(
+                        "article",
                         r#"
-                            SELECT 
-                                id, title, author, content_length, created_on, is_system, lang, tags
-                                FROM article 
-                            WHERE 
-                                is_system = true AND 
-                                is_private = false AND
-                                COALESCE(lang = $2, TRUE) AND
-                                COALESCE(title &@~ $1, TRUE)
-                            ORDER BY {} DESC 
-                            LIMIT 10 
-                            OFFSET $3
+                            AND 
+                            is_system = true AND 
+                            is_private = false
                         "#,
-                        order_by_str
+                        order_by_str,
                     )[..],
-                    &[tokio_postgres::types::Type::TEXT],
+                    &[
+                        tokio_postgres::types::Type::TEXT,
+                        tokio_postgres::types::Type::TEXT,
+                    ],
                 )
                 .await
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[search, lang, offset])
+                .query(&statement, &[lang, search, offset])
                 .await
                 .expect("Error getting articles")
                 .iter()
@@ -605,36 +619,36 @@ pub mod article {
             search: &Option<String>,
         ) -> Result<Vec<SimpleArticle>, io::Error> {
             let order_by_str = if search.is_some() {
-                "pgroonga_score(tableoid, ctid)"
+                "pgroonga_score(a.tableoid, a.ctid)"
             } else {
                 "s.saved_on"
             };
 
             let statement = client
-                .prepare(
-                    &format!(
+                .prepare_typed(
+                    &get_article_query(
                         r#"
-                            SELECT id, title, author, content_length, created_on, is_system, lang, tags 
-                                FROM saved_article AS s
-                                INNER JOIN article AS a
-                                    ON a.id = s.article_id
-                            WHERE 
-                                s.fruser_id = $1 AND 
-                                (NOT a.is_private OR a.uploader_id = $1) AND
-                                COALESCE(lang = $2, TRUE) AND
-                                COALESCE(title &@~ $3, TRUE)
-                            ORDER BY {} DESC
-                            LIMIT 10 
-                            OFFSET $4
-                        "#, 
-                        order_by_str
-                    )[..]
+                            saved_article AS s
+                            INNER JOIN article AS a
+                                ON a.id = s.article_id  
+                        "#,
+                        r#"
+                            AND
+                            s.fruser_id = $4 AND 
+                            (NOT a.is_private OR a.uploader_id = $4)
+                        "#,
+                        order_by_str,
+                    )[..],
+                    &[
+                        tokio_postgres::types::Type::TEXT,
+                        tokio_postgres::types::Type::TEXT,
+                    ],
                 )
                 .await
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[user_id, lang, search, offset])
+                .query(&statement, &[lang, search, offset, user_id])
                 .await
                 .expect("Error getting articles")
                 .iter()
@@ -659,22 +673,20 @@ pub mod article {
             };
 
             let statement = client
-                .prepare(
-                    &format!(
+                .prepare_typed(
+                    &get_article_query(
+                        "article",
                         r#"
-                            SELECT id, title, author, content_length, created_on, is_system, lang, tags 
-                                FROM article 
-                            WHERE 
-                                uploader_id = $1 AND 
-                                ($2 OR NOT is_private) AND
-                                COALESCE(lang = $3, TRUE) AND
-                                COALESCE(title &@~ $4, TRUE)
-                            ORDER BY {} DESC 
-                            LIMIT 10 
-                            OFFSET $5
-                        "#, 
-                        order_by_str
-                    )[..]
+                            AND
+                            uploader_id = $4 AND 
+                            ($5 OR NOT is_private)
+                        "#,
+                        order_by_str,
+                    )[..],
+                    &[
+                        tokio_postgres::types::Type::TEXT,
+                        tokio_postgres::types::Type::TEXT,
+                    ],
                 )
                 .await
                 .unwrap();
@@ -683,11 +695,11 @@ pub mod article {
                 .query(
                     &statement,
                     &[
-                        want_user_id,
-                        &(want_user_id == req_user_id),
                         lang,
                         search,
                         offset,
+                        want_user_id,
+                        &(want_user_id == req_user_id),
                     ],
                 )
                 .await
