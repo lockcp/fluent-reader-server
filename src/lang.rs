@@ -33,16 +33,14 @@ pub fn get_unique_words(words: &Vec<&str>) -> serde_json::Value {
 
     for word in words.iter() {
         let lowercase = word.to_lowercase();
-        if map.contains_key(&lowercase) {
-            match map.get(&lowercase).unwrap().clone() {
-                serde_json::Value::Number(num) => {
-                    map.insert(lowercase, json!(num.as_i64().unwrap() + 1i64));
-                }
-                _ => panic!("Value stored in unique words map is not a number!"),
+        match map.get(&lowercase) {
+            Some(num) => {
+                map.insert(lowercase, json!(num.as_i64().unwrap() + 1i64));
             }
-        } else {
-            map.insert(lowercase, json!(1));
-        }
+            None => {
+                map.insert(lowercase, json!(1));
+            }
+        };
     }
 
     unique_words
