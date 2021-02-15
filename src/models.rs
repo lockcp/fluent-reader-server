@@ -72,7 +72,7 @@ pub mod user {
         use super::db::*;
         use super::*;
 
-        pub mod reg {
+        pub mod auth {
             use super::*;
 
             #[derive(Deserialize)]
@@ -95,10 +95,6 @@ pub mod user {
                     }
                 }
             }
-        }
-
-        pub mod log {
-            use super::*;
 
             #[derive(Deserialize)]
             pub struct LoginRequest {
@@ -108,6 +104,17 @@ pub mod user {
 
             #[derive(Serialize)]
             pub struct LoginResponse {
+                pub token: String,
+            }
+
+            #[derive(Deserialize)]
+            pub struct RefreshRequest {
+                pub token: String,
+                pub refresh: String,
+            }
+
+            #[derive(Serialize)]
+            pub struct RefreshResponse {
                 pub token: String,
             }
         }
@@ -374,8 +381,7 @@ pub mod net {
 
     pub use gen::net::*;
 
-    pub use user::net::log::*;
-    pub use user::net::reg::*;
+    pub use user::net::auth::*;
     pub use user::net::*;
 
     pub use user::data::net::*;
