@@ -3,7 +3,9 @@ use deadpool_postgres::Client;
 use futures::future;
 use std::io;
 use tokio_pg_mapper::FromTokioPostgresRow;
+use tokio_postgres::types;
 use tokio_postgres::Statement;
+use types::{ToSql, Type};
 
 #[inline]
 fn get_article_query(from_clause: &str, where_clause: &str, order_by_clause: &str) -> String {
@@ -50,6 +52,97 @@ pub mod user {
             Err(err) => {
                 eprintln!("{}", err);
                 return Err("Error getting user");
+            }
+        }
+    }
+
+    fn extract_opt_inc_param<'a, T, U>(
+        params: &mut [&'a (dyn ToSql + Sync); 5],
+        current_param: &mut usize,
+        opt: &'a Option<T>,
+        name: &str,
+        func: &mut U,
+    ) where
+        T: ToSql + Sync,
+        U: FnMut(&str, &usize),
+    {
+        if let Some(val) = opt {
+            params[*current_param] = val;
+            (*func)(name, current_param);
+            *current_param = *current_param + 1;
+        }
+    }
+
+    pub async fn update_user(
+        client: &Client,
+        user_id: &i32,
+        username_opt: &Option<String>,
+        password_opt: &Option<String>,
+        native_lang_opt: &Option<String>,
+        display_lang_opt: &Option<String>,
+    ) -> Result<(), &'static str> {
+        let mut params: [&'_ (dyn ToSql + Sync); 5] = [&0; 5];
+        let mut current_param: usize = 0;
+
+        let mut update_statements: Vec<String> = vec![];
+
+        let mut add_to_statement = |name: &str, curr: &usize| {
+            update_statements.push(format!(" {} = ${}", name, curr + 1));
+        };
+
+        extract_opt_inc_param(
+            &mut params,
+            &mut current_param,
+            username_opt,
+            "username",
+            &mut add_to_statement,
+        );
+        extract_opt_inc_param(
+            &mut params,
+            &mut current_param,
+            password_opt,
+            "password",
+            &mut add_to_statement,
+        );
+        extract_opt_inc_param(
+            &mut params,
+            &mut current_param,
+            native_lang_opt,
+            "native_lang",
+            &mut add_to_statement,
+        );
+        extract_opt_inc_param(
+            &mut params,
+            &mut current_param,
+            display_lang_opt,
+            "display_lang",
+            &mut add_to_statement,
+        );
+
+        let set_clause = update_statements.join(",");
+
+        params[current_param] = user_id;
+        current_param = current_param + 1;
+
+        let statement = client
+            .prepare(
+                &format!(
+                    r#"
+                        UPDATE fruser
+                        SET {}
+                        WHERE id = ${}
+                    "#,
+                    set_clause, current_param
+                )[..],
+            )
+            .await
+            .unwrap();
+
+        match client.execute(&statement, &params[..current_param]).await {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                eprintln!("{}", err);
+                return Err("Error updating user");
             }
         }
     }
@@ -208,10 +301,7 @@ pub mod user {
                                 )
                             WHERE fruser_id = $3;
                         "#,
-                            &[
-                                tokio_postgres::types::Type::TEXT,
-                                tokio_postgres::types::Type::TEXT,
-                            ],
+                            &[Type::TEXT, Type::TEXT],
                         )
                         .await
                 }
@@ -230,10 +320,7 @@ pub mod user {
                                 )
                             WHERE fruser_id = $3;
                         "#,
-                            &[
-                                tokio_postgres::types::Type::TEXT,
-                                tokio_postgres::types::Type::TEXT,
-                            ],
+                            &[Type::TEXT, Type::TEXT],
                         )
                         .await
                 }
@@ -247,10 +334,7 @@ pub mod user {
                                 #- CAST(FORMAT('{%s, learning, %s}', $1, $2) AS TEXT[])
                             WHERE fruser_id = $3
                         "#,
-                            &[
-                                tokio_postgres::types::Type::TEXT,
-                                tokio_postgres::types::Type::TEXT,
-                            ],
+                            &[Type::TEXT, Type::TEXT],
                         )
                         .await
                 }
@@ -293,11 +377,7 @@ pub mod user {
                             )
                         WHERE fruser_id = $4
                 "#,
-                    &[
-                        tokio_postgres::types::Type::TEXT,
-                        tokio_postgres::types::Type::TEXT,
-                        tokio_postgres::types::Type::TEXT,
-                    ],
+                    &[Type::TEXT, Type::TEXT, Type::TEXT],
                 )
                 .await
             {
@@ -487,10 +567,7 @@ pub mod article {
                         "#,
                         order_by_str,
                     )[..],
-                    &[
-                        tokio_postgres::types::Type::TEXT,
-                        tokio_postgres::types::Type::TEXT,
-                    ],
+                    &[Type::TEXT, Type::TEXT],
                 )
                 .await
                 .unwrap();
@@ -640,10 +717,7 @@ pub mod article {
                         "#,
                         order_by_str,
                     )[..],
-                    &[
-                        tokio_postgres::types::Type::TEXT,
-                        tokio_postgres::types::Type::TEXT,
-                    ],
+                    &[Type::TEXT, Type::TEXT],
                 )
                 .await
                 .unwrap();
@@ -684,10 +758,7 @@ pub mod article {
                         "#,
                         order_by_str,
                     )[..],
-                    &[
-                        tokio_postgres::types::Type::TEXT,
-                        tokio_postgres::types::Type::TEXT,
-                    ],
+                    &[Type::TEXT, Type::TEXT],
                 )
                 .await
                 .unwrap();

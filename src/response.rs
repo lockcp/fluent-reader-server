@@ -25,6 +25,11 @@ pub mod user_res {
     }
 
     #[inline]
+    pub fn get_user_update_error() -> HttpResponse {
+        get_error("user_update_fail")
+    }
+
+    #[inline]
     pub fn get_update_word_status_error() -> HttpResponse {
         get_error("user_update_word_status_fail")
     }

@@ -206,6 +206,14 @@ impl GetUsersResponse {
     }
 }
 
+#[derive(Deserialize)]
+pub struct UpdateUserRequest {
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub native_lang: Option<String>,
+    pub display_lang: Option<String>,
+}
+
 // Word Data
 
 #[derive(Serialize)]

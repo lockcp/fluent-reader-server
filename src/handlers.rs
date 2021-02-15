@@ -5,7 +5,7 @@ use crate::models::*;
 use crate::response::*;
 use crate::util;
 
-use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
+use actix_web::{delete, get, patch, post, put, web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
 
 #[get("/")]
@@ -92,6 +92,36 @@ pub mod user {
         match attempt_user_login(json, user) {
             Ok(token) => HttpResponse::Ok().json(LoginResponse { token: token }),
             Err(_) => user_res::get_auth_failed_error(),
+        }
+    }
+
+    #[patch("/user/")]
+    pub async fn update_user(
+        db_pool: web::Data<Pool>,
+        json: web::Json<UpdateUserRequest>,
+        auth_user: ClaimsUser,
+    ) -> impl Responder {
+        let client: Client = db_pool
+            .get()
+            .await
+            .expect("Error connecting to the database");
+
+        let result = db::user::update_user(
+            &client,
+            &auth_user.id,
+            &json.username,
+            &json.password,
+            &json.native_lang,
+            &json.display_lang,
+        )
+        .await;
+
+        match result {
+            Ok(()) => get_success(),
+            Err(err) => {
+                eprintln!("{}", err);
+                user_res::get_user_update_error()
+            }
         }
     }
 
