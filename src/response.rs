@@ -1,4 +1,4 @@
-use crate::models::{ErrorResponse, Message};
+use crate::models::gen::net::{ErrorResponse, Message};
 use actix_web::HttpResponse;
 
 #[inline]

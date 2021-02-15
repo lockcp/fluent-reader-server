@@ -1,12 +1,13 @@
 use crate::app_config::CONFIG;
-use crate::models::*;
-
+use crate::models;
 use actix_web::{web, HttpRequest};
 use argon2::{self, Config as ArgonConfig};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 
-pub fn handle_pass_hash(json: &mut web::Json<RegisterRequest>) -> Result<(), &'static str> {
+pub fn handle_pass_hash(
+    json: &mut web::Json<models::net::RegisterRequest>,
+) -> Result<(), &'static str> {
     let mut hash_config = ArgonConfig::default();
     hash_config.hash_length = 9;
 
@@ -32,8 +33,8 @@ pub fn handle_pass_hash(json: &mut web::Json<RegisterRequest>) -> Result<(), &'s
 }
 
 pub fn attempt_user_login(
-    json: web::Json<LoginRequest>,
-    user: User,
+    json: web::Json<models::net::LoginRequest>,
+    user: models::db::User,
 ) -> Result<String, &'static str> {
     let matches = argon2::verify_encoded(&user.pass, json.password.as_bytes()).unwrap();
 
@@ -43,8 +44,8 @@ pub fn attempt_user_login(
             .expect("valid timestamp")
             .timestamp();
 
-        let claims = TokenClaims {
-            user: ClaimsUser::from_user(&user),
+        let claims = models::db::TokenClaims {
+            user: models::db::ClaimsUser::from_user(&user),
             exp: expiration as usize,
         };
         let token = encode(
@@ -60,7 +61,7 @@ pub fn attempt_user_login(
     }
 }
 
-pub fn attempt_token_auth(req: &HttpRequest) -> Result<ClaimsUser, &'static str> {
+pub fn attempt_token_auth(req: &HttpRequest) -> Result<models::db::ClaimsUser, &'static str> {
     if let Some(header_value) = req.headers().get("authorization") {
         let header_str = header_value.to_str().unwrap_or("");
         if !header_str.starts_with("Bearer ") {
@@ -72,7 +73,7 @@ pub fn attempt_token_auth(req: &HttpRequest) -> Result<ClaimsUser, &'static str>
         split_iter.next().unwrap();
 
         let token = split_iter.next().unwrap();
-        match decode::<TokenClaims>(
+        match decode::<models::db::TokenClaims>(
             &token,
             &DecodingKey::from_secret(CONFIG.server.secret.as_bytes()),
             &Validation::default(),

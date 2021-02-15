@@ -1,7 +1,7 @@
 use crate::auth::*;
 use crate::db;
 use crate::lang;
-use crate::models::*;
+use crate::models;
 use crate::response::*;
 use crate::util;
 
@@ -10,7 +10,7 @@ use deadpool_postgres::{Client, Pool};
 
 #[get("/")]
 pub async fn status() -> impl Responder {
-    HttpResponse::Ok().json(StatusResponse {
+    HttpResponse::Ok().json(models::net::StatusResponse {
         status: "Up".to_string(),
     })
 }
@@ -21,8 +21,8 @@ pub mod user {
     #[get("/user/")]
     pub async fn get_users(
         db_pool: web::Data<Pool>,
-        query: web::Query<GetUsersRequest>,
-        _auth_user: ClaimsUser,
+        query: web::Query<models::net::GetUsersRequest>,
+        _auth_user: models::db::ClaimsUser,
     ) -> impl Responder {
         let client: Client = match db_pool.get().await {
             Ok(client) => client,
@@ -37,7 +37,7 @@ pub mod user {
         let result = db::user::get_users(&client, offset).await;
 
         match result {
-            Ok(users) => HttpResponse::Ok().json(GetUsersResponse::new(users)),
+            Ok(users) => HttpResponse::Ok().json(models::net::GetUsersResponse::new(users)),
             Err(_) => user_res::get_fetch_users_error(),
         }
     }
@@ -45,7 +45,7 @@ pub mod user {
     #[post("/user/reg/")]
     pub async fn register(
         db_pool: web::Data<Pool>,
-        mut json: web::Json<RegisterRequest>,
+        mut json: web::Json<models::net::RegisterRequest>,
     ) -> impl Responder {
         let client: Client = db_pool
             .get()
@@ -68,13 +68,16 @@ pub mod user {
             db::user::create_user(&client, &json.username, &json.password, &json.native_lang).await;
 
         match create_result {
-            Ok(user) => HttpResponse::Created().json(RegisterResponse::new(user)),
+            Ok(user) => HttpResponse::Created().json(models::net::RegisterResponse::new(user)),
             Err(_) => user_res::get_registration_error(),
         }
     }
 
     #[post("/user/log/")]
-    pub async fn login(db_pool: web::Data<Pool>, json: web::Json<LoginRequest>) -> impl Responder {
+    pub async fn login(
+        db_pool: web::Data<Pool>,
+        json: web::Json<models::net::LoginRequest>,
+    ) -> impl Responder {
         let client: Client = db_pool
             .get()
             .await
@@ -90,7 +93,7 @@ pub mod user {
         };
 
         match attempt_user_login(json, user) {
-            Ok(token) => HttpResponse::Ok().json(LoginResponse { token: token }),
+            Ok(token) => HttpResponse::Ok().json(models::net::LoginResponse { token: token }),
             Err(_) => user_res::get_auth_failed_error(),
         }
     }
@@ -98,8 +101,8 @@ pub mod user {
     #[patch("/user/")]
     pub async fn update_user(
         db_pool: web::Data<Pool>,
-        json: web::Json<UpdateUserRequest>,
-        auth_user: ClaimsUser,
+        json: web::Json<models::net::UpdateUserRequest>,
+        auth_user: models::db::ClaimsUser,
     ) -> impl Responder {
         let client: Client = db_pool
             .get()
@@ -131,7 +134,7 @@ pub mod user {
         #[get("/user/data/")]
         pub async fn get_user_word_data(
             db_pool: web::Data<Pool>,
-            auth_user: ClaimsUser,
+            auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -144,7 +147,7 @@ pub mod user {
             let result = db::user::word_data::get_user_word_data(&client, &auth_user.id).await;
 
             match result {
-                Ok(data) => HttpResponse::Ok().json(GetWordDataResponse::new(data)),
+                Ok(data) => HttpResponse::Ok().json(models::net::GetWordDataResponse::new(data)),
                 Err(_) => user_res::get_fetch_data_error(),
             }
         }
@@ -152,8 +155,8 @@ pub mod user {
         #[put("/user/data/status/")]
         pub async fn update_word_status(
             db_pool: web::Data<Pool>,
-            json: web::Json<UpdateWordStatusRequest>,
-            auth_user: ClaimsUser,
+            json: web::Json<models::net::UpdateWordStatusRequest>,
+            auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -181,8 +184,8 @@ pub mod user {
         #[put("/user/data/definition/")]
         pub async fn update_word_definition(
             db_pool: web::Data<Pool>,
-            json: web::Json<UpdateWordDefinitionRequest>,
-            auth_user: ClaimsUser,
+            json: web::Json<models::net::UpdateWordDefinitionRequest>,
+            auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -215,8 +218,8 @@ pub mod article {
     #[post("/article/")]
     pub async fn create_article(
         db_pool: web::Data<Pool>,
-        json: web::Json<NewArticleRequest>,
-        auth_user: ClaimsUser,
+        json: web::Json<models::net::NewArticleRequest>,
+        auth_user: models::db::ClaimsUser,
     ) -> impl Responder {
         let client: Client = match db_pool.get().await {
             Ok(client) => client,
@@ -244,7 +247,9 @@ pub mod article {
         .await;
 
         match result {
-            Ok(article) => HttpResponse::Created().json(NewArticleResponse::from(article)),
+            Ok(article) => {
+                HttpResponse::Created().json(models::net::NewArticleResponse::from(article))
+            }
             Err(_) => article_res::get_create_article_error(),
         }
     }
@@ -255,8 +260,8 @@ pub mod article {
         #[get("/article/system/list/")]
         pub async fn get_articles(
             db_pool: web::Data<Pool>,
-            query: web::Query<GetArticlesRequest>,
-            _auth_user: ClaimsUser,
+            query: web::Query<models::net::GetArticlesRequest>,
+            _auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -279,7 +284,9 @@ pub mod article {
             .await;
 
             match result {
-                Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
+                Ok(articles) => {
+                    HttpResponse::Ok().json(models::net::GetArticlesResponse::new(articles))
+                }
                 Err(_) => article_res::get_fetch_articles_error(),
             }
         }
@@ -288,7 +295,7 @@ pub mod article {
         pub async fn get_full_article(
             db_pool: web::Data<Pool>,
             web::Path(article_id): web::Path<i32>,
-            _auth_user: ClaimsUser,
+            _auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -302,7 +309,9 @@ pub mod article {
 
             match result {
                 Ok(article_opt) => match article_opt {
-                    Some(article) => HttpResponse::Ok().json(GetFullArticleResponse::new(article)),
+                    Some(article) => {
+                        HttpResponse::Ok().json(models::net::GetFullArticleResponse::new(article))
+                    }
                     None => article_res::get_article_not_found(),
                 },
                 Err(_) => article_res::get_fetch_article_error(),
@@ -316,8 +325,8 @@ pub mod article {
         #[get("/article/user/list/")]
         pub async fn get_single_user_article_list(
             db_pool: web::Data<Pool>,
-            query: web::Query<GetUserArticlesRequest>,
-            auth_user: ClaimsUser,
+            query: web::Query<models::net::GetUserArticlesRequest>,
+            auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -349,7 +358,9 @@ pub mod article {
             .await;
 
             match result {
-                Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
+                Ok(articles) => {
+                    HttpResponse::Ok().json(models::net::GetArticlesResponse::new(articles))
+                }
                 Err(_) => article_res::get_fetch_articles_error(),
             }
         }
@@ -357,8 +368,8 @@ pub mod article {
         #[get("/article/user/all/list/")]
         pub async fn get_all_user_article_list(
             db_pool: web::Data<Pool>,
-            query: web::Query<GetArticlesRequest>,
-            auth_user: ClaimsUser,
+            query: web::Query<models::net::GetArticlesRequest>,
+            auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -384,7 +395,9 @@ pub mod article {
             .await;
 
             match result {
-                Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
+                Ok(articles) => {
+                    HttpResponse::Ok().json(models::net::GetArticlesResponse::new(articles))
+                }
                 Err(_) => article_res::get_fetch_articles_error(),
             }
         }
@@ -393,7 +406,7 @@ pub mod article {
         pub async fn get_full_article(
             db_pool: web::Data<Pool>,
             web::Path(article_id): web::Path<i32>,
-            auth_user: ClaimsUser,
+            auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -408,7 +421,9 @@ pub mod article {
 
             match result {
                 Ok(article_opt) => match article_opt {
-                    Some(article) => HttpResponse::Ok().json(GetFullArticleResponse::new(article)),
+                    Some(article) => {
+                        HttpResponse::Ok().json(models::net::GetFullArticleResponse::new(article))
+                    }
                     None => article_res::get_article_not_found(),
                 },
                 Err(_) => article_res::get_fetch_article_error(),
@@ -418,8 +433,8 @@ pub mod article {
         #[get("/article/user/saved/list/")]
         pub async fn get_saved_article_list(
             db_pool: web::Data<Pool>,
-            query: web::Query<GetArticlesRequest>,
-            auth_user: ClaimsUser,
+            query: web::Query<models::net::GetArticlesRequest>,
+            auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -443,7 +458,9 @@ pub mod article {
             .await;
 
             match result {
-                Ok(articles) => HttpResponse::Ok().json(GetArticlesResponse::new(articles)),
+                Ok(articles) => {
+                    HttpResponse::Ok().json(models::net::GetArticlesResponse::new(articles))
+                }
                 Err(_) => article_res::get_fetch_articles_error(),
             }
         }
@@ -451,8 +468,8 @@ pub mod article {
         #[put("/article/user/saved/single/")]
         pub async fn save_article(
             db_pool: web::Data<Pool>,
-            json: web::Json<ArticleRequest>,
-            auth_user: ClaimsUser,
+            json: web::Json<models::net::ArticleRequest>,
+            auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -475,8 +492,8 @@ pub mod article {
         #[delete("/article/user/saved/single/")]
         pub async fn remove_saved_article(
             db_pool: web::Data<Pool>,
-            json: web::Json<ArticleRequest>,
-            auth_user: ClaimsUser,
+            json: web::Json<models::net::ArticleRequest>,
+            auth_user: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,

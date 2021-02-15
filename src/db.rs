@@ -1,4 +1,4 @@
-use crate::models::*;
+use crate::models;
 use deadpool_postgres::Client;
 use futures::future;
 use std::io;
@@ -32,7 +32,7 @@ pub mod user {
     pub async fn get_user(
         client: &Client,
         username: &String,
-    ) -> Result<Option<User>, &'static str> {
+    ) -> Result<Option<models::db::User>, &'static str> {
         let statement = client
             .prepare("SELECT * FROM fruser WHERE username = $1")
             .await
@@ -40,7 +40,7 @@ pub mod user {
 
         match client.query_opt(&statement, &[username]).await {
             Ok(ref row) => match row {
-                Some(ref user) => match User::from_row_ref(user) {
+                Some(ref user) => match models::db::User::from_row_ref(user) {
                     Ok(user) => Ok(Some(user)),
                     Err(err) => {
                         eprintln!("{}", err);
@@ -147,7 +147,10 @@ pub mod user {
         }
     }
 
-    pub async fn get_users(client: &Client, offset: &i64) -> Result<Vec<SimpleUser>, io::Error> {
+    pub async fn get_users(
+        client: &Client,
+        offset: &i64,
+    ) -> Result<Vec<models::db::SimpleUser>, io::Error> {
         let statement = client
             .prepare("SELECT id, username FROM fruser ORDER BY id LIMIT 10 OFFSET $1")
             .await
@@ -158,8 +161,8 @@ pub mod user {
             .await
             .expect("Error getting users")
             .iter()
-            .map(|row| SimpleUser::from_row_ref(row).unwrap())
-            .collect::<Vec<SimpleUser>>();
+            .map(|row| models::db::SimpleUser::from_row_ref(row).unwrap())
+            .collect::<Vec<models::db::SimpleUser>>();
 
         Ok(users)
     }
@@ -194,7 +197,7 @@ pub mod user {
         username: &String,
         password: &String,
         native_lang: &String,
-    ) -> Result<User, &'static str> {
+    ) -> Result<models::db::User, &'static str> {
         let prepare_result = prepare_user_creation_statements(client).await;
 
         if let Err(err) = prepare_result {
@@ -204,11 +207,11 @@ pub mod user {
 
         let (insert_user, insert_word_data) = prepare_result.unwrap();
 
-        let insert_user_result: Result<User, &'static str> = match client
+        let insert_user_result: Result<models::db::User, &'static str> = match client
             .query_one(&insert_user, &[username, password, native_lang])
             .await
         {
-            Ok(result) => match User::from_row_ref(&result) {
+            Ok(result) => match models::db::User::from_row_ref(&result) {
                 Ok(user) => Ok(user),
                 Err(err) => {
                     eprintln!("{}", err);
@@ -245,7 +248,7 @@ pub mod user {
         pub async fn get_user_word_data(
             client: &Client,
             user_id: &i32,
-        ) -> Result<UserWordData, &'static str> {
+        ) -> Result<models::db::UserWordData, &'static str> {
             let statement = match client
                 .prepare(
                     r#"
@@ -264,7 +267,7 @@ pub mod user {
             };
 
             match client.query_one(&statement, &[user_id]).await {
-                Ok(result) => match UserWordData::from_row_ref(&result) {
+                Ok(result) => match models::db::UserWordData::from_row_ref(&result) {
                     Ok(word_data) => Ok(word_data),
                     Err(err) => {
                         eprintln!("{}", err);
@@ -420,7 +423,7 @@ pub mod article {
     pub async fn get_article(
         client: &Client,
         article_id: &i32,
-    ) -> Result<Option<Article>, &'static str> {
+    ) -> Result<Option<models::db::Article>, &'static str> {
         let statement = client
             .prepare("SELECT * FROM article WHERE id = $1")
             .await
@@ -428,7 +431,7 @@ pub mod article {
 
         match client.query_opt(&statement, &[article_id]).await {
             Ok(ref row_opt) => match row_opt {
-                Some(ref row) => match Article::from_row_ref(row) {
+                Some(ref row) => match models::db::Article::from_row_ref(row) {
                     Ok(article) => Ok(Some(article)),
                     Err(err) => {
                         eprintln!("{}", err);
@@ -455,7 +458,7 @@ pub mod article {
         words: &Vec<&str>,
         unique_words: &serde_json::Value,
         is_private: &bool,
-    ) -> Result<Article, &'static str> {
+    ) -> Result<models::db::Article, &'static str> {
         let statement = match client
             .prepare(
                 r#"
@@ -500,7 +503,7 @@ pub mod article {
             )
             .await
         {
-            Ok(result) => match Article::from_row_ref(&result) {
+            Ok(result) => match models::db::Article::from_row_ref(&result) {
                 Ok(article) => Ok(article),
                 Err(err) => {
                     eprintln!("{}", err);
@@ -520,7 +523,7 @@ pub mod article {
         pub async fn get_system_article(
             client: &Client,
             article_id: &i32,
-        ) -> Result<Option<Article>, &'static str> {
+        ) -> Result<Option<models::db::Article>, &'static str> {
             let statement = client
                 .prepare("SELECT * FROM article WHERE id = $1 AND is_system = true")
                 .await
@@ -528,7 +531,7 @@ pub mod article {
 
             match client.query_opt(&statement, &[article_id]).await {
                 Ok(ref row_opt) => match row_opt {
-                    Some(ref row) => match Article::from_row_ref(row) {
+                    Some(ref row) => match models::db::Article::from_row_ref(row) {
                         Ok(article) => Ok(Some(article)),
                         Err(err) => {
                             eprintln!("{}", err);
@@ -549,7 +552,7 @@ pub mod article {
             offset: &i64,
             lang: &Option<String>,
             search: &Option<String>,
-        ) -> Result<Vec<SimpleArticle>, io::Error> {
+        ) -> Result<Vec<models::db::SimpleArticle>, io::Error> {
             let order_by_str = if search.is_some() {
                 "pgroonga_score(tableoid, ctid)"
             } else {
@@ -577,8 +580,8 @@ pub mod article {
                 .await
                 .expect("Error getting articles")
                 .iter()
-                .map(|row| SimpleArticle::from_row_ref(row).unwrap())
-                .collect::<Vec<SimpleArticle>>();
+                .map(|row| models::db::SimpleArticle::from_row_ref(row).unwrap())
+                .collect::<Vec<models::db::SimpleArticle>>();
 
             Ok(articles)
         }
@@ -591,7 +594,7 @@ pub mod article {
             client: &Client,
             article_id: &i32,
             user_id: &i32,
-        ) -> Result<Option<Article>, &'static str> {
+        ) -> Result<Option<models::db::Article>, &'static str> {
             let statement = client
                 .prepare(
                     r#"
@@ -608,7 +611,7 @@ pub mod article {
 
             match client.query_opt(&statement, &[article_id, user_id]).await {
                 Ok(ref row_opt) => match row_opt {
-                    Some(ref row) => match Article::from_row_ref(row) {
+                    Some(ref row) => match models::db::Article::from_row_ref(row) {
                         Ok(article) => Ok(Some(article)),
                         Err(err) => {
                             eprintln!("{}", err);
@@ -695,7 +698,7 @@ pub mod article {
             offset: &i64,
             lang: &Option<String>,
             search: &Option<String>,
-        ) -> Result<Vec<SimpleArticle>, io::Error> {
+        ) -> Result<Vec<models::db::SimpleArticle>, io::Error> {
             let order_by_str = if search.is_some() {
                 "pgroonga_score(a.tableoid, a.ctid)"
             } else {
@@ -727,8 +730,8 @@ pub mod article {
                 .await
                 .expect("Error getting articles")
                 .iter()
-                .map(|row| SimpleArticle::from_row_ref(row).unwrap())
-                .collect::<Vec<SimpleArticle>>();
+                .map(|row| models::db::SimpleArticle::from_row_ref(row).unwrap())
+                .collect::<Vec<models::db::SimpleArticle>>();
 
             Ok(articles)
         }
@@ -740,7 +743,7 @@ pub mod article {
             offset: &i64,
             lang: &Option<String>,
             search: &Option<String>,
-        ) -> Result<Vec<SimpleArticle>, io::Error> {
+        ) -> Result<Vec<models::db::SimpleArticle>, io::Error> {
             let order_by_str = if search.is_some() {
                 "pgroonga_score(tableoid, ctid)"
             } else {
@@ -777,8 +780,8 @@ pub mod article {
                 .await
                 .expect("Error getting articles")
                 .iter()
-                .map(|row| SimpleArticle::from_row_ref(row).unwrap())
-                .collect::<Vec<SimpleArticle>>();
+                .map(|row| models::db::SimpleArticle::from_row_ref(row).unwrap())
+                .collect::<Vec<models::db::SimpleArticle>>();
 
             Ok(articles)
         }
@@ -789,7 +792,7 @@ pub mod article {
             offset: &i64,
             lang: &Option<String>,
             search: &Option<String>,
-        ) -> Result<Vec<SimpleArticle>, io::Error> {
+        ) -> Result<Vec<models::db::SimpleArticle>, io::Error> {
             let order_by_str = if search.is_some() {
                 "pgroonga_score(tableoid, ctid)"
             } else {
@@ -822,8 +825,8 @@ pub mod article {
                 .await
                 .expect("Error getting articles")
                 .iter()
-                .map(|row| SimpleArticle::from_row_ref(row).unwrap())
-                .collect::<Vec<SimpleArticle>>();
+                .map(|row| models::db::SimpleArticle::from_row_ref(row).unwrap())
+                .collect::<Vec<models::db::SimpleArticle>>();
 
             Ok(articles)
         }
