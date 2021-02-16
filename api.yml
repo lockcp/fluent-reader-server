@@ -102,6 +102,8 @@ paths:
                 properties:
                   token:
                     type: string
+                  refresh_token:
+                    type: string
         "401":
           description: "Login unsuccessful"
           content:
@@ -156,6 +158,45 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /user/refresh:
+    post:
+      summary: "Refresh a user's token using the previous token and a refresh token"
+      operationId: refresh
+      tags:
+        - user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - refresh_token
+              properties:
+                token:
+                  type: string
+                  description: An expired token that matches the user to login
+                refresh_token:
+                  type: string
+                  description: The user's current unique refresh token
+      responses:
+        "200":
+          description: "Login successful"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        "401":
+          description: "Login unsuccessful"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  
   /user/data:
     get:
       summary: "Get user's word status and word definition data"
@@ -534,6 +575,7 @@ components:
         - created_on
         - native_lang
         - display_lang
+        - refresh_token
       properties:
         id:
           type: integer
@@ -548,6 +590,8 @@ components:
           type: string
         display_lang:
               type: string
+        refresh_token:
+            type: string
     SimpleUser:
       type: object
       required:
