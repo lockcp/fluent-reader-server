@@ -64,8 +64,14 @@ pub mod user {
             return user_res::get_registration_error();
         };
 
-        let create_result =
-            db::user::create_user(&client, &json.username, &json.password, &json.native_lang).await;
+        let create_result = db::user::create_user(
+            &client,
+            &json.username,
+            &json.password,
+            &json.native_lang,
+            &json.display_lang,
+        )
+        .await;
 
         match create_result {
             Ok(user) => HttpResponse::Created().json(models::net::RegisterResponse::new(user)),
@@ -83,7 +89,63 @@ pub mod user {
             .await
             .expect("Error connecting to the database");
 
-        let result = db::user::get_user(&client, &json.username).await;
+        let get_user_result = db::user::get_user(&client, &json.username).await;
+        let user = match get_user_result {
+            Ok(user_opt) => match user_opt {
+                Some(user) => user,
+                None => return user_res::get_auth_failed_error(),
+            },
+            Err(_) => return user_res::get_auth_failed_error(),
+        };
+
+        let token = match attempt_user_login(json, &user) {
+            Ok(token) => token,
+            Err(_) => return user_res::get_auth_failed_error(),
+        };
+
+        let new_refresh_token = util::get_rand_str(256);
+
+        let update_refresh_result = db::user::update_user(
+            &client,
+            &user.id,
+            &models::db::UpdateUserOpt {
+                refresh_token: Some(new_refresh_token.clone()),
+                ..models::db::UpdateUserOpt::none()
+            },
+        )
+        .await;
+
+        match update_refresh_result {
+            Ok(_) => HttpResponse::Ok().json(models::net::LoginResponse {
+                token: token,
+                refresh_token: new_refresh_token,
+            }),
+            Err(err) => {
+                eprintln!("{}", err);
+                user_res::get_auth_failed_error()
+            }
+        }
+    }
+
+    #[post("/user/refresh/")]
+    pub async fn refresh(
+        db_pool: web::Data<Pool>,
+        json: web::Json<models::net::RefreshRequest>,
+    ) -> impl Responder {
+        let token_user = match check_can_refresh_token(&json.token[..]) {
+            Ok(user) => user,
+            Err(err) => {
+                eprintln!("{}", err);
+                return user_res::get_auth_failed_error();
+            }
+        };
+
+        let client: Client = db_pool
+            .get()
+            .await
+            .expect("Error connecting to the database");
+
+        let result = db::user::get_user_by_id(&client, &token_user.id).await;
         let user = match result {
             Ok(user_opt) => match user_opt {
                 Some(user) => user,
@@ -92,10 +154,13 @@ pub mod user {
             Err(_) => return user_res::get_auth_failed_error(),
         };
 
-        match attempt_user_login(json, user) {
-            Ok(token) => HttpResponse::Ok().json(models::net::LoginResponse { token: token }),
-            Err(_) => user_res::get_auth_failed_error(),
+        if user.username != token_user.username || user.refresh_token != json.refresh_token {
+            return user_res::get_auth_failed_error();
         }
+
+        let token = get_token(&user);
+
+        HttpResponse::Ok().json(models::net::RefreshResponse { token: token })
     }
 
     #[patch("/user/")]
@@ -112,10 +177,7 @@ pub mod user {
         let result = db::user::update_user(
             &client,
             &auth_user.id,
-            &json.username,
-            &json.password,
-            &json.native_lang,
-            &json.display_lang,
+            &models::db::UpdateUserOpt::from_req(json.into_inner()),
         )
         .await;
 

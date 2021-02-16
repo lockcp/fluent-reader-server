@@ -48,6 +48,38 @@ pub mod user {
             pub pass: String,
             pub created_on: SystemTime,
             pub native_lang: String,
+            pub display_lang: String,
+            pub refresh_token: String,
+        }
+
+        pub struct UpdateUserOpt {
+            pub username: Option<String>,
+            pub pass: Option<String>,
+            pub native_lang: Option<String>,
+            pub display_lang: Option<String>,
+            pub refresh_token: Option<String>,
+        }
+
+        impl UpdateUserOpt {
+            pub fn none() -> Self {
+                Self {
+                    username: None,
+                    pass: None,
+                    native_lang: None,
+                    display_lang: None,
+                    refresh_token: None,
+                }
+            }
+
+            pub fn from_req(req: net::UpdateUserRequest) -> Self {
+                Self {
+                    username: req.username,
+                    pass: req.password,
+                    native_lang: req.native_lang,
+                    display_lang: req.display_lang,
+                    refresh_token: None,
+                }
+            }
         }
 
         #[derive(Serialize, Deserialize, PostgresMapper)]
@@ -80,6 +112,7 @@ pub mod user {
                 pub username: String,
                 pub password: String,
                 pub native_lang: String,
+                pub display_lang: String,
             }
 
             #[derive(Serialize)]
@@ -105,12 +138,13 @@ pub mod user {
             #[derive(Serialize)]
             pub struct LoginResponse {
                 pub token: String,
+                pub refresh_token: String,
             }
 
             #[derive(Deserialize)]
             pub struct RefreshRequest {
                 pub token: String,
-                pub refresh: String,
+                pub refresh_token: String,
             }
 
             #[derive(Serialize)]
@@ -160,6 +194,7 @@ pub mod user {
             pub username: String,
             pub created_on: SystemTime,
             pub native_lang: String,
+            pub display_lang: String,
         }
 
         impl ClaimsUser {
@@ -170,6 +205,7 @@ pub mod user {
                     username: user.username.clone(),
                     created_on: user.created_on,
                     native_lang: user.native_lang.clone(),
+                    display_lang: user.display_lang.clone(),
                 }
             }
         }
@@ -181,7 +217,7 @@ pub mod user {
 
             #[inline]
             fn from_request(req: &HttpRequest, _payload: &mut dev::Payload) -> Self::Future {
-                match crate::auth::attempt_token_auth(req) {
+                match crate::auth::attempt_req_token_auth(req) {
                     Ok(user) => ok(user),
                     Err(error) => {
                         eprintln!("{}", error);

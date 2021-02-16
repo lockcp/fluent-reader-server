@@ -56,8 +56,35 @@ pub mod user {
         }
     }
 
+    pub async fn get_user_by_id(
+        client: &Client,
+        user_id: &i32,
+    ) -> Result<Option<models::db::User>, &'static str> {
+        let statement = client
+            .prepare("SELECT * FROM fruser WHERE id = $1")
+            .await
+            .unwrap();
+
+        match client.query_opt(&statement, &[user_id]).await {
+            Ok(ref row) => match row {
+                Some(ref user) => match models::db::User::from_row_ref(user) {
+                    Ok(user) => Ok(Some(user)),
+                    Err(err) => {
+                        eprintln!("{}", err);
+                        return Err("Error getting user");
+                    }
+                },
+                None => Ok(None),
+            },
+            Err(err) => {
+                eprintln!("{}", err);
+                return Err("Error getting user");
+            }
+        }
+    }
+
     fn extract_opt_inc_param<'a, T, U>(
-        params: &mut [&'a (dyn ToSql + Sync); 5],
+        params: &mut [&'a (dyn ToSql + Sync); 6],
         current_param: &mut usize,
         opt: &'a Option<T>,
         name: &str,
@@ -76,12 +103,9 @@ pub mod user {
     pub async fn update_user(
         client: &Client,
         user_id: &i32,
-        username_opt: &Option<String>,
-        password_opt: &Option<String>,
-        native_lang_opt: &Option<String>,
-        display_lang_opt: &Option<String>,
+        update: &models::db::UpdateUserOpt,
     ) -> Result<(), &'static str> {
-        let mut params: [&'_ (dyn ToSql + Sync); 5] = [&0; 5];
+        let mut params: [&'_ (dyn ToSql + Sync); 6] = [&0; 6];
         let mut current_param: usize = 0;
 
         let mut update_statements: Vec<String> = vec![];
@@ -93,29 +117,36 @@ pub mod user {
         extract_opt_inc_param(
             &mut params,
             &mut current_param,
-            username_opt,
+            &update.username,
             "username",
             &mut add_to_statement,
         );
         extract_opt_inc_param(
             &mut params,
             &mut current_param,
-            password_opt,
+            &update.pass,
             "password",
             &mut add_to_statement,
         );
         extract_opt_inc_param(
             &mut params,
             &mut current_param,
-            native_lang_opt,
+            &update.native_lang,
             "native_lang",
             &mut add_to_statement,
         );
         extract_opt_inc_param(
             &mut params,
             &mut current_param,
-            display_lang_opt,
+            &update.display_lang,
             "display_lang",
+            &mut add_to_statement,
+        );
+        extract_opt_inc_param(
+            &mut params,
+            &mut current_param,
+            &update.refresh_token,
+            "refresh_token",
             &mut add_to_statement,
         );
 
@@ -172,8 +203,8 @@ pub mod user {
         client: &Client,
     ) -> Result<(Statement, Statement), tokio_postgres::error::Error> {
         let insert_user_ft = client.prepare(
-            "INSERT INTO fruser (username, pass, created_on, native_lang)
-                VALUES ($1, $2, NOW(), $3) RETURNING *",
+            "INSERT INTO fruser (username, pass, created_on, native_lang, display_lang, refresh)
+                VALUES ($1, $2, NOW(), $3, $4, $5) RETURNING *",
         );
 
         let insert_word_data_ft = client
@@ -197,6 +228,7 @@ pub mod user {
         username: &String,
         password: &String,
         native_lang: &String,
+        display_lang: &String,
     ) -> Result<models::db::User, &'static str> {
         let prepare_result = prepare_user_creation_statements(client).await;
 
@@ -208,7 +240,10 @@ pub mod user {
         let (insert_user, insert_word_data) = prepare_result.unwrap();
 
         let insert_user_result: Result<models::db::User, &'static str> = match client
-            .query_one(&insert_user, &[username, password, native_lang])
+            .query_one(
+                &insert_user,
+                &[username, password, native_lang, display_lang, &""],
+            )
             .await
         {
             Ok(result) => match models::db::User::from_row_ref(&result) {

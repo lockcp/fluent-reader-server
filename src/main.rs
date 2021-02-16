@@ -8,6 +8,7 @@ mod response;
 mod util;
 
 extern crate argon2;
+extern crate rand;
 
 use crate::app_config::CONFIG;
 use crate::handlers::*;
@@ -48,6 +49,7 @@ async fn main() -> std::io::Result<()> {
             .service(user::login)
             .service(user::register)
             .service(user::update_user)
+            .service(user::refresh)
             .service(user::data::get_user_word_data)
             .service(user::data::update_word_status)
             .service(user::data::update_word_definition)

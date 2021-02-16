@@ -30,7 +30,8 @@ CREATE TABLE fruser (
     pass VARCHAR(128) NOT NULL,
     created_on TIMESTAMP NOT NULL,
     native_lang VARCHAR(6),
-    display_lang VARCHAR(6)
+    display_lang VARCHAR(6),
+    refresh_token VARCHAR
 );
 
 CREATE INDEX fruser_index ON fruser(username);
