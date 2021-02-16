@@ -203,7 +203,7 @@ pub mod user {
         client: &Client,
     ) -> Result<(Statement, Statement), tokio_postgres::error::Error> {
         let insert_user_ft = client.prepare(
-            "INSERT INTO fruser (username, pass, created_on, native_lang, display_lang, refresh)
+            "INSERT INTO fruser (username, pass, created_on, native_lang, display_lang, refresh_token)
                 VALUES ($1, $2, NOW(), $3, $4, $5) RETURNING *",
         );
 
