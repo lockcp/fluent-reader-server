@@ -1,4 +1,4 @@
-version: '3.1'
+version: "3.1"
 services:
   postgres:
     container_name: postgres
@@ -10,7 +10,7 @@ services:
       - "5432"
     networks:
       - backend
-    env_file: 
+    env_file:
       - "db.env"
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
@@ -20,11 +20,11 @@ services:
     restart: always
     depends_on:
       - postgres
-    ports: 
-      - "80:80"
+    ports:
+      - "80:3000"
     networks:
       - backend
-    environment: 
+    environment:
       PG.HOST: postgres
-networks: 
+networks:
   backend:
