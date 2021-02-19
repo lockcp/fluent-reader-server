@@ -13,7 +13,9 @@ extern crate rand;
 use crate::app_config::CONFIG;
 use crate::handlers::*;
 
+use actix_cors::Cors;
 use actix_web::{
+    http,
     middleware::{Logger, NormalizePath},
     web, App, HttpServer,
 };
@@ -40,9 +42,21 @@ async fn main() -> std::io::Result<()> {
     let json_config = web::JsonConfig::default().limit(CONFIG.server.json_max_size);
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .send_wildcard()
+            .allow_any_origin()
+            .allowed_methods(vec!["GET", "POST", "DELETE", "PATCH", "PUT", "OPTIONS"])
+            .allowed_headers(vec![
+                http::header::AUTHORIZATION,
+                http::header::ACCEPT,
+                http::header::ORIGIN,
+                http::header::CONTENT_TYPE,
+            ]);
+
         App::new()
             .wrap(NormalizePath::default())
             .wrap(Logger::default())
+            .wrap(cors)
             .app_data(json_config.clone())
             .data(pool.clone())
             .service(user::get_users)
