@@ -57,9 +57,9 @@ paths:
                 password:
                   type: string
                   description: A new password
-                native_lang:
+                study_lang:
                   type: string
-                  description: A new native language setting
+                  description: A new study language setting
                 display_lang:
                   type: string
                   description: A new display language setting
@@ -69,7 +69,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Message" 
+                $ref: "#/components/schemas/Message"
   /user/log:
     post:
       summary: "Log into the system and get a token"
@@ -125,7 +125,8 @@ paths:
               required:
                 - username
                 - password
-                - native_lang
+                - study_lang
+                - display_lang
               properties:
                 username:
                   type: string
@@ -133,9 +134,12 @@ paths:
                 password:
                   type: string
                   description: The password to register with
-                native_lang:
+                study_lang:
                   type: string
-                  description: The user's native language code
+                  description: The user's study language code
+                display_lang:
+                  type: string
+                  description: The user's preferred display language code
       responses:
         "201":
           description: "Registration successful"
@@ -196,7 +200,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  
+
   /user/data:
     get:
       summary: "Get user's word status and word definition data"
@@ -357,14 +361,14 @@ paths:
           description: A search query to query the articles by title/tag. If this parameter is specified, lang must also be specified
           required: false
           schema:
-            type: string 
+            type: string
       responses:
         "200":
           description: "Successful fetch of article list"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SimpleArticleList" 
+                $ref: "#/components/schemas/SimpleArticleList"
   /article/system/single/{article_id}:
     get:
       summary: "Returns all data for a single system article with the given id"
@@ -385,7 +389,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Article" 
+                $ref: "#/components/schemas/Article"
   /article/user/list:
     get:
       summary: "Returns a list of articles uploaded by a given user"
@@ -425,7 +429,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SimpleArticleList" 
+                $ref: "#/components/schemas/SimpleArticleList"
   /article/user/all/list:
     get:
       summary: "Returns a list of all user-uploaded articles (non-system articles)"
@@ -458,7 +462,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SimpleArticleList" 
+                $ref: "#/components/schemas/SimpleArticleList"
   /article/user/single/{article_id}:
     get:
       summary: "Returns all data for a single user article with the given id"
@@ -479,7 +483,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Article" 
+                $ref: "#/components/schemas/Article"
   /article/user/saved/list:
     get:
       summary: "Returns a list of all articles saved by the authenticated user"
@@ -512,7 +516,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SimpleArticleList" 
+                $ref: "#/components/schemas/SimpleArticleList"
   /article/user/saved/single:
     put:
       summary: "Save an article to the user's saved list"
@@ -538,7 +542,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Message" 
+                $ref: "#/components/schemas/Message"
     delete:
       summary: "Delete an article from the user's saved list"
       operationId: deleteSavedArticle
@@ -563,7 +567,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Message" 
+                $ref: "#/components/schemas/Message"
 components:
   schemas:
     User:
@@ -573,7 +577,7 @@ components:
         - username
         - pass
         - created_on
-        - native_lang
+        - study_lang
         - display_lang
         - refresh_token
       properties:
@@ -586,12 +590,12 @@ components:
           type: string
         created_on:
           $ref: "#/components/schemas/Timestamp"
-        native_lang:
+        study_lang:
           type: string
         display_lang:
-              type: string
+          type: string
         refresh_token:
-            type: string
+          type: string
     SimpleUser:
       type: object
       required:
@@ -704,7 +708,7 @@ components:
         count:
           type: integer
           format: int32
-    
+
     WordStatusInnerLangData:
       type: object
       required:
