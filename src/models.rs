@@ -47,7 +47,7 @@ pub mod user {
             pub username: String,
             pub pass: String,
             pub created_on: SystemTime,
-            pub native_lang: String,
+            pub study_lang: String,
             pub display_lang: String,
             pub refresh_token: String,
         }
@@ -55,7 +55,7 @@ pub mod user {
         pub struct UpdateUserOpt {
             pub username: Option<String>,
             pub pass: Option<String>,
-            pub native_lang: Option<String>,
+            pub study_lang: Option<String>,
             pub display_lang: Option<String>,
             pub refresh_token: Option<String>,
         }
@@ -65,7 +65,7 @@ pub mod user {
                 Self {
                     username: None,
                     pass: None,
-                    native_lang: None,
+                    study_lang: None,
                     display_lang: None,
                     refresh_token: None,
                 }
@@ -75,7 +75,7 @@ pub mod user {
                 Self {
                     username: req.username,
                     pass: req.password,
-                    native_lang: req.native_lang,
+                    study_lang: req.study_lang,
                     display_lang: req.display_lang,
                     refresh_token: None,
                 }
@@ -111,7 +111,7 @@ pub mod user {
             pub struct RegisterRequest {
                 pub username: String,
                 pub password: String,
-                pub native_lang: String,
+                pub study_lang: String,
                 pub display_lang: String,
             }
 
@@ -179,7 +179,7 @@ pub mod user {
         pub struct UpdateUserRequest {
             pub username: Option<String>,
             pub password: Option<String>,
-            pub native_lang: Option<String>,
+            pub study_lang: Option<String>,
             pub display_lang: Option<String>,
         }
     }
@@ -193,7 +193,7 @@ pub mod user {
             pub id: i32,
             pub username: String,
             pub created_on: SystemTime,
-            pub native_lang: String,
+            pub study_lang: String,
             pub display_lang: String,
         }
 
@@ -204,7 +204,7 @@ pub mod user {
                     id: user.id,
                     username: user.username.clone(),
                     created_on: user.created_on,
-                    native_lang: user.native_lang.clone(),
+                    study_lang: user.study_lang.clone(),
                     display_lang: user.display_lang.clone(),
                 }
             }

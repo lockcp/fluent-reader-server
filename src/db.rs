@@ -131,8 +131,8 @@ pub mod user {
         extract_opt_inc_param(
             &mut params,
             &mut current_param,
-            &update.native_lang,
-            "native_lang",
+            &update.study_lang,
+            "study_lang",
             &mut add_to_statement,
         );
         extract_opt_inc_param(
@@ -203,7 +203,7 @@ pub mod user {
         client: &Client,
     ) -> Result<(Statement, Statement), tokio_postgres::error::Error> {
         let insert_user_ft = client.prepare(
-            "INSERT INTO fruser (username, pass, created_on, native_lang, display_lang, refresh_token)
+            "INSERT INTO fruser (username, pass, created_on, study_lang, display_lang, refresh_token)
                 VALUES ($1, $2, NOW(), $3, $4, $5) RETURNING *",
         );
 
@@ -227,7 +227,7 @@ pub mod user {
         client: &Client,
         username: &String,
         password: &String,
-        native_lang: &String,
+        study_lang: &String,
         display_lang: &String,
     ) -> Result<models::db::User, &'static str> {
         let prepare_result = prepare_user_creation_statements(client).await;
@@ -242,7 +242,7 @@ pub mod user {
         let insert_user_result: Result<models::db::User, &'static str> = match client
             .query_one(
                 &insert_user,
-                &[username, password, native_lang, display_lang, &""],
+                &[username, password, study_lang, display_lang, &""],
             )
             .await
         {

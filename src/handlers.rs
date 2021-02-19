@@ -68,7 +68,7 @@ pub mod user {
             &client,
             &json.username,
             &json.password,
-            &json.native_lang,
+            &json.study_lang,
             &json.display_lang,
         )
         .await;
