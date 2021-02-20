@@ -79,6 +79,11 @@ pub mod user {
         }
     }
 
+    #[post("/user/auth/")]
+    pub async fn auth(_auth_user: models::db::ClaimsUser) -> impl Responder {
+        get_success()
+    }
+
     #[post("/user/log/")]
     pub async fn login(
         db_pool: web::Data<Pool>,
