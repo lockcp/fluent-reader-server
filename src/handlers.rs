@@ -297,13 +297,14 @@ pub mod article {
         };
 
         let words = lang::get_words(&json.content[..], &json.language[..]);
-        let unique_words = lang::get_unique_words(&words);
+        let (unique_words, total_word_count) = lang::get_unique_words(&words);
 
         let result = db::article::create_article(
             &client,
             &json.title,
             &json.author,
             &json.content,
+            &total_word_count,
             &auth_user.id,
             &json.language,
             &json.tags,
