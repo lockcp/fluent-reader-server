@@ -4,7 +4,6 @@ info:
   title: Fluent Reader Server
 servers:
   - url: "http://localhost"
-  - url: "http://8.140.129.80"
 paths:
   /user:
     get:
