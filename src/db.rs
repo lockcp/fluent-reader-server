@@ -494,15 +494,27 @@ pub mod article {
         words: &Vec<&str>,
         unique_words: &serde_json::Value,
         is_private: &bool,
+        sentence_opt: &Option<(Vec<Vec<&str>>, Vec<i32>)>,
+        article_pages: &(Vec<Vec<&str>>, Vec<Vec<&str>>, Vec<Vec<&str>>),
     ) -> Result<models::db::Article, &'static str> {
         let statement = match client
             .prepare(
                 r#"
                 INSERT INTO article 
-                        (title, author, content, content_length, 
+                        (
+                            title, author, content, content_length, 
                             created_on, is_system, uploader_id, lang, 
-                            tags, words, unique_words, is_private) 
-                VALUES ($1, $2, $3, $4, NOW(), $5, $6, $7, $8, $9, $10, $11) 
+                            tags, words, unique_words, is_private,
+                            sentences, sentence_stops,
+                            pages_sm, pages_md, pages_lg
+                        ) 
+                VALUES (
+                    $1, $2, $3, $4, 
+                    NOW(), $5, $6, $7, 
+                    $8, $9, $10, $11,
+                    $12, $13,
+                    $14, $15, $16
+                ) 
                 RETURNING *
             "#,
             )
@@ -520,6 +532,11 @@ pub mod article {
             None => vec![],
         };
 
+        let (sentences, sentence_stops) = match sentence_opt {
+            Some((sentences, sentence_stops)) => (Some(sentences), Some(sentence_stops)),
+            None => (None, None),
+        };
+
         match client
             .query_one(
                 &statement,
@@ -535,6 +552,11 @@ pub mod article {
                     words,
                     unique_words,
                     is_private,
+                    &serde_json::to_value(sentences).unwrap(),
+                    &sentence_stops,
+                    &serde_json::to_value(&article_pages.0).unwrap(),
+                    &serde_json::to_value(&article_pages.1).unwrap(),
+                    &serde_json::to_value(&article_pages.2).unwrap(),
                 ],
             )
             .await

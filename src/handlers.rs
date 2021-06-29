@@ -296,8 +296,12 @@ pub mod article {
             }
         };
 
-        let words = lang::get_words(&json.content[..], &json.language[..]);
+        let text = &json.content[..];
+        let lang = &json.language[..];
+        let words = lang::get_words(text, lang);
         let (unique_words, total_word_count) = lang::get_unique_words(&words);
+        let sentences_opt = lang::get_sentences(text, &words, lang);
+        let pages = lang::get_pages(&sentences_opt);
 
         let result = db::article::create_article(
             &client,
@@ -311,6 +315,8 @@ pub mod article {
             &words,
             &unique_words,
             &json.is_private,
+            &sentences_opt,
+            &pages,
         )
         .await;
 

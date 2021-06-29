@@ -295,7 +295,11 @@ pub mod article {
             pub content: String,
             pub content_length: i32,
             pub words: Vec<String>,
+            pub sentences: serde_json::Value,
             pub unique_words: serde_json::Value,
+            pub pages_sm: serde_json::Value,
+            pub pages_md: serde_json::Value,
+            pub pages_lg: serde_json::Value,
             pub created_on: SystemTime,
             pub is_system: bool,
             pub uploader_id: i32,
@@ -312,7 +316,9 @@ pub mod article {
             // no content
             pub content_length: i32,
             // no words
+            // no sentences
             // no unique words
+            // no pages
             pub created_on: SystemTime,
             pub is_system: bool,
             // no uploader_id
