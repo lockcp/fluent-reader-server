@@ -38,8 +38,8 @@ pub fn handle_pass_hash(
     // overwrite the plaintext password memory before dropping it
     // by reassigning the new hashed password string to it
     let password_bytes = unsafe { json.password.as_bytes_mut() };
-    for i in 0..password_bytes.len() {
-        password_bytes[i] = 0;
+    for item in password_bytes {
+        *item = 0;
     }
 
     json.password = hashed;
@@ -53,9 +53,9 @@ pub fn attempt_user_login(
 ) -> Result<String, &'static str> {
     let matches = argon2::verify_encoded(&user.pass, json.password.as_bytes()).unwrap();
     if matches {
-        return Ok(get_token(user));
+        Ok(get_token(user))
     } else {
-        return Err("Password doesn't match");
+        Err("Password doesn't match")
     }
 }
 
@@ -67,8 +67,7 @@ pub fn get_token(user: &models::db::User) -> String {
             .expect("invalid timestamp")
             .timestamp() as usize,
     };
-    let token = encode(&HEADER, &claims, &ENCODING_KEY).unwrap();
-    token
+    encode(&HEADER, &claims, &ENCODING_KEY).unwrap()
 }
 
 pub fn attempt_token_auth(
@@ -104,7 +103,7 @@ pub fn attempt_req_token_auth(req: &HttpRequest) -> Result<models::db::ClaimsUse
             return Err("Missing bearer");
         }
 
-        let mut split_iter = header_str.split(" ");
+        let mut split_iter = header_str.split(' ');
         // iterate over "Bearer" string
         split_iter.next().unwrap();
 
@@ -117,6 +116,6 @@ pub fn attempt_req_token_auth(req: &HttpRequest) -> Result<models::db::ClaimsUse
             }
         }
     } else {
-        return Err("Missing authorization header");
+        Err("Missing authorization header")
     }
 }

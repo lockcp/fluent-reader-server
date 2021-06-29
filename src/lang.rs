@@ -28,7 +28,7 @@ fn get_words_chinese<'a>(text: &'a str) -> Vec<&'a str> {
 
 pub fn get_sentences<'a>(
     text: &'a str,
-    words: &Vec<&'a str>,
+    words: &[&'a str],
     lang: &str,
 ) -> Option<(Vec<Vec<&'a str>>, Vec<i32>)> {
     // Only English sentence segmentation supported
@@ -86,7 +86,7 @@ lazy_static! {
     );
 }
 
-pub fn get_unique_words(words: &Vec<&str>) -> (serde_json::Value, usize) {
+pub fn get_unique_words(words: &[&str]) -> (serde_json::Value, usize) {
     let mut unique_words = json!({});
     let mut total_word_count = 0usize;
 
@@ -102,11 +102,11 @@ pub fn get_unique_words(words: &Vec<&str>) -> (serde_json::Value, usize) {
                 Some(num_val) => {
                     let new_num = num_val.as_i64().unwrap() + 1i64;
                     map.insert(lowercase, json!(new_num));
-                    total_word_count = total_word_count + 1;
+                    total_word_count += 1;
                 }
                 None => {
                     map.insert(lowercase, json!(1));
-                    total_word_count = total_word_count + 1;
+                    total_word_count += 1;
                 }
             };
         }
@@ -198,16 +198,16 @@ pub fn get_pages<'a>(
     }
 
     // remove potential empty last pages
-    if pages_sm[pages_sm.len() - 1].len() == 0 {
-        pages_sm.remove(pages_sm.len() - 1);
+    if pages_sm[pages_sm.len() - 1].is_empty() {
+        pages_sm.pop();
     }
 
-    if pages_md[pages_md.len() - 1].len() == 0 {
-        pages_md.remove(pages_md.len() - 1);
+    if pages_md[pages_md.len() - 1].is_empty() {
+        pages_md.pop();
     }
 
-    if pages_lg[pages_lg.len() - 1].len() == 0 {
-        pages_lg.remove(pages_lg.len() - 1);
+    if pages_lg[pages_lg.len() - 1].is_empty() {
+        pages_lg.pop();
     }
 
     (pages_sm, pages_md, pages_lg)

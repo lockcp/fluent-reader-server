@@ -168,10 +168,7 @@ pub mod user {
             #[inline]
             pub fn new(users: Vec<SimpleUser>) -> GetUsersResponse {
                 let count = users.len() as i64;
-                GetUsersResponse {
-                    users: users,
-                    count: count,
-                }
+                GetUsersResponse { users, count }
             }
         }
 
@@ -259,7 +256,7 @@ pub mod user {
 
             impl GetWordDataResponse {
                 pub fn new(data: UserWordData) -> GetWordDataResponse {
-                    GetWordDataResponse { data: data }
+                    GetWordDataResponse { data }
                 }
             }
 
@@ -349,10 +346,7 @@ pub mod article {
             #[inline]
             pub fn new(articles: Vec<SimpleArticle>) -> GetArticlesResponse {
                 let count = articles.len() as i64;
-                GetArticlesResponse {
-                    articles: articles,
-                    count: count,
-                }
+                GetArticlesResponse { articles, count }
             }
         }
 
@@ -370,7 +364,7 @@ pub mod article {
         impl GetFullArticleResponse {
             #[inline]
             pub fn new(article: Article) -> GetFullArticleResponse {
-                GetFullArticleResponse { article: article }
+                GetFullArticleResponse { article }
             }
         }
 
@@ -393,7 +387,7 @@ pub mod article {
         impl NewArticleResponse {
             #[inline]
             pub fn from(article: Article) -> NewArticleResponse {
-                NewArticleResponse { article: article }
+                NewArticleResponse { article }
             }
         }
 

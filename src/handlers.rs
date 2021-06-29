@@ -54,7 +54,7 @@ pub mod user {
 
         let existing_user_result = db::user::get_user(&client, &json.username).await;
         if let Ok(user_opt) = existing_user_result {
-            if let Some(_) = user_opt {
+            if user_opt.is_some() {
                 return user_res::get_user_exists_error();
             }
         }
@@ -122,7 +122,7 @@ pub mod user {
 
         match update_refresh_result {
             Ok(_) => HttpResponse::Ok().json(models::net::LoginResponse {
-                token: token,
+                token,
                 refresh_token: new_refresh_token,
             }),
             Err(err) => {
@@ -165,7 +165,7 @@ pub mod user {
 
         let token = get_token(&user);
 
-        HttpResponse::Ok().json(models::net::RefreshResponse { token: token })
+        HttpResponse::Ok().json(models::net::RefreshResponse { token })
     }
 
     #[patch("/user/")]

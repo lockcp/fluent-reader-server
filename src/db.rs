@@ -44,14 +44,14 @@ pub mod user {
                     Ok(user) => Ok(Some(user)),
                     Err(err) => {
                         eprintln!("{}", err);
-                        return Err("Error getting user");
+                        Err("Error getting user")
                     }
                 },
                 None => Ok(None),
             },
             Err(err) => {
                 eprintln!("{}", err);
-                return Err("Error getting user");
+                Err("Error getting user")
             }
         }
     }
@@ -71,14 +71,14 @@ pub mod user {
                     Ok(user) => Ok(Some(user)),
                     Err(err) => {
                         eprintln!("{}", err);
-                        return Err("Error getting user");
+                        Err("Error getting user")
                     }
                 },
                 None => Ok(None),
             },
             Err(err) => {
                 eprintln!("{}", err);
-                return Err("Error getting user");
+                Err("Error getting user")
             }
         }
     }
@@ -96,7 +96,7 @@ pub mod user {
         if let Some(val) = opt {
             params[*current_param] = val;
             (*func)(name, current_param);
-            *current_param = *current_param + 1;
+            *current_param += 1;
         }
     }
 
@@ -153,7 +153,7 @@ pub mod user {
         let set_clause = update_statements.join(",");
 
         params[current_param] = user_id;
-        current_param = current_param + 1;
+        current_param += 1;
 
         let statement = client
             .prepare(
@@ -173,7 +173,7 @@ pub mod user {
             Ok(_) => Ok(()),
             Err(err) => {
                 eprintln!("{}", err);
-                return Err("Error updating user");
+                Err("Error updating user")
             }
         }
     }
@@ -391,7 +391,7 @@ pub mod user {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
-                    return Err("Error updating word status");
+                    Err("Error updating word status")
                 }
             }
         }
@@ -565,12 +565,12 @@ pub mod article {
                 Ok(article) => Ok(article),
                 Err(err) => {
                     eprintln!("{}", err);
-                    return Err("Error creating article");
+                    Err("Error creating article")
                 }
             },
             Err(err) => {
                 eprintln!("{}", err);
-                return Err("Error creating article");
+                Err("Error creating article")
             }
         }
     }
@@ -745,7 +745,7 @@ pub mod article {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
-                    return Err("Failed to delete saved article");
+                    Err("Failed to delete saved article")
                 }
             }
         }
