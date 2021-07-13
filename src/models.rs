@@ -268,6 +268,13 @@ pub mod user {
             }
 
             #[derive(Deserialize)]
+            pub struct BatchUpdateWordStatusRequest {
+                pub lang: String,
+                pub words: Vec<String>,
+                pub status: String,
+            }
+
+            #[derive(Deserialize)]
             pub struct UpdateWordDefinitionRequest {
                 pub lang: String,
                 pub word: String,

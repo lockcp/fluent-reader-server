@@ -1,10 +1,11 @@
 use crate::models;
 use deadpool_postgres::Client;
 use futures::future;
+use serde_json::json;
 use std::io;
 use tokio_pg_mapper::FromTokioPostgresRow;
 use tokio_postgres::types;
-use tokio_postgres::Statement;
+use tokio_postgres::{Error, Statement};
 use types::{ToSql, Type};
 
 #[inline]
@@ -316,48 +317,35 @@ pub mod user {
             }
         }
 
-        pub async fn update_word_status(
+        async fn get_word_status_statement(
             client: &Client,
-            user_id: &i32,
-            lang: &String,
-            word: &String,
-            new_status: &String,
-        ) -> Result<(), &'static str> {
-            let statement_result = match &new_status[..] {
-                "known" => {
+            new_status: &str,
+        ) -> Result<Statement, Error> {
+            match new_status {
+                "known" | "learning" => {
+                    let old_status = if new_status == "known" {
+                        "learning"
+                    } else {
+                        "known"
+                    };
+
                     client
                         .prepare_typed(
-                            r#"
-                            UPDATE user_word_data
-                            SET word_status_data = 
-                                jsonb_set(
-                                    (word_status_data #- 
-                                        CAST(FORMAT('{%s, learning, %s}', $1, $2) AS TEXT[])
-                                    ), 
-                                    CAST(FORMAT('{%s, known, %s}', $1, $2) AS TEXT[]),
-                                    '1'
-                                )
-                            WHERE fruser_id = $3;
-                        "#,
-                            &[Type::TEXT, Type::TEXT],
-                        )
-                        .await
-                }
-                "learning" => {
-                    client
-                        .prepare_typed(
-                            r#"
-                            UPDATE user_word_data
-                            SET word_status_data = 
-                                jsonb_set(
-                                    (word_status_data #- 
-                                        CAST(FORMAT('{%s, known, %s}', $1, $2) AS TEXT[])
-                                    ), 
-                                    CAST(FORMAT('{%s, learning, %s}', $1, $2) AS TEXT[]),
-                                    '1'
-                                )
-                            WHERE fruser_id = $3;
-                        "#,
+                            &format!(
+                                r#"
+                                UPDATE user_word_data
+                                SET word_status_data = 
+                                    jsonb_set(
+                                        (word_status_data #- 
+                                            CAST(FORMAT('{{%s, {1}, %s}}', $1, $2) AS TEXT[])
+                                        ), 
+                                        CAST(FORMAT('{{%s, {0}, %s}}', $1, $2) AS TEXT[]),
+                                        '1'
+                                    )
+                                WHERE fruser_id = $3;
+                            "#,
+                                new_status, old_status
+                            )[..],
                             &[Type::TEXT, Type::TEXT],
                         )
                         .await
@@ -376,8 +364,18 @@ pub mod user {
                         )
                         .await
                 }
-                _ => return Err("Invalid status"),
-            };
+                _ => panic!(format!("new_status is invalid: {}", new_status)),
+            }
+        }
+
+        pub async fn update_word_status(
+            client: &Client,
+            user_id: &i32,
+            lang: &String,
+            word: &String,
+            new_status: &String,
+        ) -> Result<(), &'static str> {
+            let statement_result = get_word_status_statement(client, &new_status[..]).await;
 
             let statement = match statement_result {
                 Ok(statement) => statement,
@@ -388,6 +386,190 @@ pub mod user {
             };
 
             match client.execute(&statement, &[lang, word, user_id]).await {
+                Ok(_) => Ok(()),
+                Err(err) => {
+                    eprintln!("{}", err);
+                    Err("Error updating word status")
+                }
+            }
+        }
+
+        fn get_batch_update_json_strings(
+            words: &[String],
+            new_status: &str,
+        ) -> (serde_json::Value, String) {
+            let mut json_dict = json!({});
+
+            let map = match json_dict {
+                serde_json::Value::Object(ref mut map) => map,
+                _ => panic!("json_dict serde_json::Value isn't an Object!"),
+            };
+
+            let parameter_offset = if new_status == "new" { 3 } else { 4 };
+            let mut delete_str = String::from("");
+
+            for (i, word) in words.iter().enumerate() {
+                map.insert(word.to_lowercase(), json!(1));
+                delete_str += &format!("#- ${} ", i + parameter_offset)[..];
+            }
+
+            (json_dict, delete_str)
+        }
+
+        async fn get_batch_update_statement(
+            client: &Client,
+            new_status: &str,
+            json_delete_str: String,
+            word_count: usize,
+        ) -> Result<Statement, Error> {
+            let mut types: Vec<Type> = vec![Type::TEXT, Type::INT4];
+
+            let formatted_string = match new_status {
+                "new" => format!(
+                    r#"
+                    UPDATE user_word_data
+                    SET word_status_data = 
+                        jsonb_set(
+                            jsonb_set(
+                                word_status_data, 
+                                CAST(FORMAT('{{%s, known}}', $1) AS TEXT[]),
+                                (word_status_data)->$1->'known'
+                                    {0}
+                            ),
+                            CAST(FORMAT('{{%s, learning}}', $1) AS TEXT[]),
+                            (
+                                (word_status_data)->$1->'learning'
+                                    {0}
+                            )
+                        )
+                    WHERE fruser_id = $2;
+                "#,
+                    json_delete_str
+                ),
+                "learning" | "known" => {
+                    types.push(Type::JSONB);
+
+                    let old_status = match new_status {
+                        "learning" => "known",
+                        "known" => "learning",
+                        _ => panic!(format!(
+                            "Unsupported batch word status update new status: {}",
+                            new_status
+                        )),
+                    };
+
+                    // $1: lang
+                    // $2: user_id
+                    // $3: insert_json
+                    // $4..$n: (n - 4 + 1) words
+                    // {0}: new_status
+                    // {1}: old_status
+                    // {2}: json_delete_str
+                    let formatted_string = format!(
+                        r#"
+                        UPDATE user_word_data
+                        SET word_status_data = 
+                            jsonb_set(
+                                jsonb_set(
+                                    word_status_data, 
+                                    CAST(FORMAT('{{%s, {0}}}', $1) AS TEXT[]),
+                                    (word_status_data)->$1->'{0}' ||
+                                    $3
+                                ),
+                                CAST(FORMAT('{{%s, {1}}}', $1) AS TEXT[]),
+                                (
+                                    (word_status_data)->$1->'{1}'
+                                        {2}
+                                )
+                            )
+                        WHERE fruser_id = $2;
+                    "#,
+                        new_status, old_status, json_delete_str
+                    );
+
+                    formatted_string
+                }
+
+                _ => panic!(format!(
+                    "Unsupported batch word status update new status: {}",
+                    new_status
+                )),
+            };
+
+            types.reserve(word_count);
+            for _ in 0..word_count {
+                types.push(Type::TEXT_ARRAY);
+            }
+
+            client.prepare_typed(&formatted_string, &types).await
+        }
+
+        fn build_batch_update_params<'a>(
+            lang: &'a String,
+            user_id: &'a i32,
+            insert_json: &'a serde_json::Value,
+            words: &'a [Vec<&'a str>],
+            new_status: &str,
+        ) -> Vec<&'a (dyn ToSql + Sync)> {
+            let mut params: Vec<&(dyn ToSql + Sync)> = vec![lang, user_id];
+
+            if new_status != "new" {
+                params.push(insert_json);
+            }
+
+            for word in words {
+                params.push(word);
+            }
+
+            params
+        }
+
+        fn get_vectored_words(words: &[String]) -> Vec<Vec<&str>> {
+            let mut vectored_words: Vec<Vec<&str>> = vec![];
+
+            for word in words {
+                vectored_words.push(vec![&word[..]]);
+            }
+
+            vectored_words
+        }
+
+        pub async fn batch_update_word_status(
+            client: &Client,
+            user_id: &i32,
+            lang: &String,
+            words: &Vec<String>,
+            new_status: &String,
+        ) -> Result<(), &'static str> {
+            let (insert_json, json_delete_str) =
+                get_batch_update_json_strings(&words[..], &new_status[..]);
+
+            let statement = match get_batch_update_statement(
+                client,
+                &new_status[..],
+                json_delete_str,
+                words.len(),
+            )
+            .await
+            {
+                Ok(statement) => statement,
+                Err(err) => {
+                    eprintln!("{}", err);
+                    return Err("Error updating word status");
+                }
+            };
+
+            let vectored_words = get_vectored_words(&words[..]);
+
+            let params = build_batch_update_params(
+                lang,
+                user_id,
+                &insert_json,
+                &vectored_words[..],
+                &new_status[..],
+            );
+
+            match client.execute(&statement, &params[..]).await {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);

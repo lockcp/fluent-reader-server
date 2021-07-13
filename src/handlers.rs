@@ -248,6 +248,35 @@ pub mod user {
             }
         }
 
+        #[put("/user/data/status/batch/")]
+        pub async fn batch_update_word_status(
+            db_pool: web::Data<Pool>,
+            json: web::Json<models::net::BatchUpdateWordStatusRequest>,
+            auth_user: models::db::ClaimsUser,
+        ) -> impl Responder {
+            let client: Client = match db_pool.get().await {
+                Ok(client) => client,
+                Err(err) => {
+                    eprintln!("{}", err);
+                    return user_res::get_update_word_status_error();
+                }
+            };
+
+            let result = db::user::word_data::batch_update_word_status(
+                &client,
+                &auth_user.id,
+                &json.lang,
+                &json.words,
+                &json.status,
+            )
+            .await;
+
+            match result {
+                Ok(()) => get_success(),
+                Err(_) => user_res::get_update_word_status_error(),
+            }
+        }
+
         #[put("/user/data/definition/")]
         pub async fn update_word_definition(
             db_pool: web::Data<Pool>,
