@@ -88,27 +88,42 @@ lazy_static! {
 
 pub fn get_unique_words(words: &[&str]) -> (serde_json::Value, usize) {
     let mut unique_words = json!({});
+    let mut word_indices = json!({});
     let mut total_word_count = 0usize;
 
-    let map = match unique_words {
+    let unique_words_map = match unique_words {
         serde_json::Value::Object(ref mut map) => map,
         _ => panic!("unique_words serde_json::Value isn't an Object!"),
     };
 
-    for word in words.iter() {
+    let word_indices_map = match word_indices {
+        serde_json::Value::Object(ref mut map) => map,
+        _ => panic!("word_indices serde_json::Value isn't an Object!"),
+    };
+
+    for (index, word) in words.iter().enumerate() {
         let lowercase = word.to_lowercase();
         if !STOP_CHARS.contains(&lowercase[..]) {
-            match map.get(&lowercase) {
+            match unique_words_map.get_mut(&lowercase) {
                 Some(num_val) => {
                     let new_num = num_val.as_i64().unwrap() + 1i64;
-                    map.insert(lowercase, json!(new_num));
+                    *num_val = json!(new_num);
                     total_word_count += 1;
                 }
                 None => {
-                    map.insert(lowercase, json!(1));
+                    unique_words_map.insert(lowercase.clone(), json!(1));
                     total_word_count += 1;
                 }
             };
+
+            match word_indices_map.get_mut(&lowercase) {
+                Some(index_arr_val) => {
+                    index_arr_val.as_array_mut().unwrap().push(json!(index));
+                }
+                None => {
+                    word_indices_map.insert(lowercase, json!([index]));
+                }
+            }
         }
     }
 
@@ -141,29 +156,55 @@ const SMALL_PAGE_SIZE: i32 = 100;
 const MEDIUM_PAGE_SIZE: i32 = 150;
 const LARGE_PAGE_SIZE: i32 = 200;
 
-pub fn get_pages<'a>(
-    sentences_opt: &Option<(Vec<Vec<&'a str>>, Vec<i32>)>,
-) -> (Vec<Vec<&'a str>>, Vec<Vec<&'a str>>, Vec<Vec<&'a str>>) {
+pub fn get_pages<'a>(sentences_opt: &Option<(Vec<Vec<&'a str>>, Vec<i32>)>) -> serde_json::Value {
     let mut pages_sm: Vec<Vec<&str>> = vec![];
     let mut pages_md: Vec<Vec<&str>> = vec![];
     let mut pages_lg: Vec<Vec<&str>> = vec![];
 
     if sentences_opt.is_none() {
-        return (pages_sm, pages_md, pages_lg);
+        return json!([
+            {
+                "pages": pages_sm,
+                "wordIndexMaps": []
+            },
+            {
+                "pages": pages_md,
+                "wordIndexMaps": []
+            },
+            {
+                "pages": pages_lg,
+                "wordIndexMaps": []
+            }
+        ]);
     }
 
     let sentences = &sentences_opt.as_ref().unwrap().0;
 
     let mut remain_pg_len_sm: i32 = SMALL_PAGE_SIZE;
     let mut curr_pg_sm = 0;
+    let mut word_index_map_sm_val = json!({});
+    let word_index_map_sm = match word_index_map_sm_val {
+        serde_json::Value::Object(ref mut map) => map,
+        _ => panic!("serde_json::Value isn't an Object!"),
+    };
     pages_sm.push(vec![]);
 
     let mut remain_pg_len_md: i32 = MEDIUM_PAGE_SIZE;
     let mut curr_pg_md = 0;
+    let mut word_index_map_md_val = json!({});
+    let word_index_map_md = match word_index_map_md_val {
+        serde_json::Value::Object(ref mut map) => map,
+        _ => panic!("serde_json::Value isn't an Object!"),
+    };
     pages_md.push(vec![]);
 
     let mut remain_pg_len_lg: i32 = LARGE_PAGE_SIZE;
     let mut curr_pg_lg = 0;
+    let mut word_index_map_lg_val = json!({});
+    let word_index_map_lg = match word_index_map_lg_val {
+        serde_json::Value::Object(ref mut map) => map,
+        _ => panic!("serde_json::Value isn't an Object!"),
+    };
     pages_lg.push(vec![]);
 
     for sentence in sentences {
@@ -210,7 +251,20 @@ pub fn get_pages<'a>(
         pages_lg.pop();
     }
 
-    (pages_sm, pages_md, pages_lg)
+    json!([
+        {
+            "pages": pages_sm,
+            "wordIndexMaps": []
+        },
+        {
+            "pages": pages_md,
+            "wordIndexMaps": []
+        },
+        {
+            "pages": pages_lg,
+            "wordIndexMaps": []
+        }
+    ])
 }
 
 #[cfg(test)]

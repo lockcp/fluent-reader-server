@@ -47,24 +47,29 @@ CREATE INDEX word_data_user_index ON user_word_data(fruser_id);
 
 CREATE TABLE article (
     id SERIAL PRIMARY KEY,
+
     title VARCHAR(250) NOT NULL,
     author VARCHAR,
-    content VARCHAR NOT NULL,
-    content_length INTEGER NOT NULL,
-    words VARCHAR[] NOT NULL,
-    sentences JSONB,
-    sentence_stops INTEGER[],
-    unique_words JSONB NOT NULL,
-    pages_sm JSONB NOT NULL,
-    pages_md JSONB NOT NULL,
-    pages_lg JSONB NOT NULL,
+
     created_on TIMESTAMP NOT NULL,
     is_system BOOLEAN NOT NULL,
     is_private BOOLEAN NOT NULL,
     uploader_id INTEGER NOT NULL,
     FOREIGN KEY (uploader_id) REFERENCES fruser(id),
     lang VARCHAR(6) NOT NULL,
-    tags VARCHAR(50)[] NOT NULL
+    tags VARCHAR(50)[] NOT NULL,
+
+    content VARCHAR NOT NULL,
+    content_length INTEGER NOT NULL,
+
+    words VARCHAR[] NOT NULL,
+    unique_words JSONB NOT NULL,
+    -- word_indices JSONB NOT NULL,
+
+    sentences JSONB,
+    sentence_stops INTEGER[],
+
+    page_data JSONB NOT NULL
 );
 
 CREATE INDEX article_id_index ON article(id);
