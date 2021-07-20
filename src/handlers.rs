@@ -22,7 +22,7 @@ pub mod user {
     pub async fn get_users(
         db_pool: web::Data<Pool>,
         query: web::Query<models::net::GetUsersRequest>,
-        _auth_user: models::db::ClaimsUser,
+        _: models::db::ClaimsUser,
     ) -> impl Responder {
         let client: Client = match db_pool.get().await {
             Ok(client) => client,
@@ -80,7 +80,7 @@ pub mod user {
     }
 
     #[post("/user/auth/")]
-    pub async fn auth(_auth_user: models::db::ClaimsUser) -> impl Responder {
+    pub async fn auth(_: models::db::ClaimsUser) -> impl Responder {
         get_success()
     }
 
@@ -364,7 +364,7 @@ pub mod article {
         pub async fn get_articles(
             db_pool: web::Data<Pool>,
             query: web::Query<models::net::GetArticlesRequest>,
-            _auth_user: models::db::ClaimsUser,
+            _: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -383,6 +383,7 @@ pub mod article {
                 offset,
                 &query.lang,
                 &search_query_opt,
+                &query.limit,
             )
             .await;
 
@@ -398,7 +399,7 @@ pub mod article {
         pub async fn get_full_article(
             db_pool: web::Data<Pool>,
             web::Path(article_id): web::Path<i32>,
-            _auth_user: models::db::ClaimsUser,
+            _: models::db::ClaimsUser,
         ) -> impl Responder {
             let client: Client = match db_pool.get().await {
                 Ok(client) => client,
@@ -457,6 +458,7 @@ pub mod article {
                 offset,
                 &query.lang,
                 &search_query_opt,
+                &query.limit,
             )
             .await;
 
@@ -494,6 +496,7 @@ pub mod article {
                 offset,
                 &query.lang,
                 &search_query_opt,
+                &query.limit,
             )
             .await;
 
@@ -557,6 +560,7 @@ pub mod article {
                 offset,
                 &query.lang,
                 &search_query_opt,
+                &query.limit,
             )
             .await;
 

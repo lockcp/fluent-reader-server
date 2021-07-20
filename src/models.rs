@@ -213,7 +213,7 @@ pub mod user {
             type Config = ();
 
             #[inline]
-            fn from_request(req: &HttpRequest, _payload: &mut dev::Payload) -> Self::Future {
+            fn from_request(req: &HttpRequest, _: &mut dev::Payload) -> Self::Future {
                 match crate::auth::attempt_req_token_auth(req) {
                     Ok(user) => ok(user),
                     Err(error) => {
@@ -336,6 +336,7 @@ pub mod article {
         // get article list
         #[derive(Deserialize)]
         pub struct GetArticlesRequest {
+            pub limit: Option<i64>,
             pub offset: Option<i64>,
             pub lang: Option<String>,
             pub search: Option<String>,
@@ -399,6 +400,7 @@ pub mod article {
         // get user uploaded article list
         #[derive(Deserialize)]
         pub struct GetUserArticlesRequest {
+            pub limit: Option<i64>,
             pub offset: Option<i64>,
             pub user_id: Option<i32>,
             pub lang: Option<String>,

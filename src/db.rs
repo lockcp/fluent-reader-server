@@ -20,7 +20,7 @@ fn get_article_query(from_clause: &str, where_clause: &str, order_by_clause: &st
                 COALESCE(title &@~ $2, TRUE)
                 {}
             ORDER BY {} DESC 
-            LIMIT 10 
+            LIMIT $4 
             OFFSET $3
         "#,
         from_clause, where_clause, order_by_clause
@@ -788,6 +788,7 @@ pub mod article {
             offset: &i64,
             lang: &Option<String>,
             search: &Option<String>,
+            limit: &Option<i64>,
         ) -> Result<Vec<models::db::SimpleArticle>, io::Error> {
             let order_by_str = if search.is_some() {
                 "pgroonga_score(tableoid, ctid)"
@@ -812,7 +813,18 @@ pub mod article {
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[lang, search, offset])
+                .query(
+                    &statement,
+                    &[
+                        lang,
+                        search,
+                        offset,
+                        match limit {
+                            Some(limit) => limit,
+                            None => &(10i64),
+                        },
+                    ],
+                )
                 .await
                 .expect("Error getting articles")
                 .iter()
@@ -934,6 +946,7 @@ pub mod article {
             offset: &i64,
             lang: &Option<String>,
             search: &Option<String>,
+            limit: &Option<i64>,
         ) -> Result<Vec<models::db::SimpleArticle>, io::Error> {
             let order_by_str = if search.is_some() {
                 "pgroonga_score(a.tableoid, a.ctid)"
@@ -951,8 +964,8 @@ pub mod article {
                         "#,
                         r#"
                             AND
-                            s.fruser_id = $4 AND 
-                            (NOT a.is_private OR a.uploader_id = $4)
+                            s.fruser_id = $5 AND 
+                            (NOT a.is_private OR a.uploader_id = $5)
                         "#,
                         order_by_str,
                     )[..],
@@ -962,7 +975,19 @@ pub mod article {
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[lang, search, offset, user_id])
+                .query(
+                    &statement,
+                    &[
+                        lang,
+                        search,
+                        offset,
+                        match limit {
+                            Some(limit) => limit,
+                            None => &(10i64),
+                        },
+                        user_id,
+                    ],
+                )
                 .await
                 .expect("Error getting articles")
                 .iter()
@@ -979,6 +1004,7 @@ pub mod article {
             offset: &i64,
             lang: &Option<String>,
             search: &Option<String>,
+            limit: &Option<i64>,
         ) -> Result<Vec<models::db::SimpleArticle>, io::Error> {
             let order_by_str = if search.is_some() {
                 "pgroonga_score(tableoid, ctid)"
@@ -992,8 +1018,8 @@ pub mod article {
                         "article",
                         r#"
                             AND
-                            uploader_id = $4 AND 
-                            ($5 OR NOT is_private)
+                            uploader_id = $5 AND 
+                            ($6 OR NOT is_private)
                         "#,
                         order_by_str,
                     )[..],
@@ -1009,6 +1035,10 @@ pub mod article {
                         lang,
                         search,
                         offset,
+                        match limit {
+                            Some(limit) => limit,
+                            None => &(10i64),
+                        },
                         want_user_id,
                         &(want_user_id == req_user_id),
                     ],
@@ -1028,6 +1058,7 @@ pub mod article {
             offset: &i64,
             lang: &Option<String>,
             search: &Option<String>,
+            limit: &Option<i64>,
         ) -> Result<Vec<models::db::SimpleArticle>, io::Error> {
             let order_by_str = if search.is_some() {
                 "pgroonga_score(tableoid, ctid)"
@@ -1047,7 +1078,7 @@ pub mod article {
                                 COALESCE(lang = $2, TRUE) AND
                                 COALESCE(title &@~ $3, TRUE)
                             ORDER BY {} DESC 
-                            LIMIT 10 
+                            LIMIT $5
                             OFFSET $4
                         "#, 
                         order_by_str
@@ -1057,7 +1088,19 @@ pub mod article {
                 .unwrap();
 
             let articles = client
-                .query(&statement, &[req_user_id, lang, search, offset])
+                .query(
+                    &statement,
+                    &[
+                        req_user_id,
+                        lang,
+                        search,
+                        offset,
+                        match limit {
+                            Some(limit) => limit,
+                            None => &10i64,
+                        },
+                    ],
+                )
                 .await
                 .expect("Error getting articles")
                 .iter()
