@@ -3,6 +3,9 @@ commands
 run server with automatic recompile
 cargo watch -x 'run --bin fluent-reader-server'
 
+docker exec into container
+docker exec -it containerid /bin/bash
+
 log into database
 psql --host=localhost --port=5432 --username=nramos000 --dbname=fr
 
