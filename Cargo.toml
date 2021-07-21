@@ -33,3 +33,6 @@ jsonwebtoken = "7.2.0"
 
 jieba-rs = "0.6"
 unicode-segmentation = "1.7.1"
+
+[patch.crates-io]
+lexical-core = {git = 'https://github.com/Gelbpunkt/rust-lexical', branch = 'fix-warnings-and-update-deps'}
