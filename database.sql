@@ -19,15 +19,15 @@ CREATE EXTENSION pgroonga;
 
 DROP TABLE IF EXISTS user_word_data;
 DROP TABLE IF EXISTS saved_articles;
-DROP TABLE IF EXISTS fruser;
 DROP TABLE IF EXISTS article;
+DROP TABLE IF EXISTS fruser;
 
 SET timezone = 'PRC';
 
 CREATE TABLE fruser (
     id SERIAL PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
-    pass VARCHAR(128) NOT NULL,
+    pass VARCHAR(200) NOT NULL,
     created_on TIMESTAMP NOT NULL,
     study_lang VARCHAR(6),
     display_lang VARCHAR(6),
