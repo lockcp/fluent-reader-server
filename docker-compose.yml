@@ -21,7 +21,7 @@ services:
     depends_on:
       - postgres
     ports:
-      - "3000:80"
+      - "2244:2244"
     networks:
       - backend
     environment:
