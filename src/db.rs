@@ -364,7 +364,7 @@ pub mod user {
                         )
                         .await
                 }
-                _ => panic!(format!("new_status is invalid: {}", new_status)),
+                _ => panic!("new_status is invalid: {}", new_status),
             }
         }
 
@@ -452,10 +452,10 @@ pub mod user {
                     let old_status = match new_status {
                         "learning" => "known",
                         "known" => "learning",
-                        _ => panic!(format!(
+                        _ => panic!(
                             "Unsupported batch word status update new status: {}",
                             new_status
-                        )),
+                        ),
                     };
 
                     // $1: lang
@@ -490,10 +490,10 @@ pub mod user {
                     formatted_string
                 }
 
-                _ => panic!(format!(
+                _ => panic!(
                     "Unsupported batch word status update new status: {}",
                     new_status
-                )),
+                ),
             };
 
             types.reserve(word_count);
