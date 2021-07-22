@@ -59,7 +59,6 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .app_data(json_config.clone())
             .data(pool.clone())
-            .service(user::get_users)
             .service(user::login)
             .service(user::register)
             .service(user::update_user)
