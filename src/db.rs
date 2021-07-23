@@ -687,13 +687,13 @@ pub mod article {
                             title, author, content, content_length, 
                             created_on, is_system, uploader_id, lang, 
                             tags, words, unique_words, is_private,
-                            sentences, sentence_stops, page_data
+                            sentences, sentence_stops, page_data, is_deleted
                         ) 
                 VALUES (
                     $1, $2, $3, $4, 
                     NOW(), $5, $6, $7, 
                     $8, $9, $10, $11,
-                    $12, $13, $14
+                    $12, $13, $14, false
                 ) 
                 RETURNING 
                     id, title, author, content_length, 

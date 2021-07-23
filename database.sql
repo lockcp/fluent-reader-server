@@ -50,10 +50,12 @@ CREATE TABLE article (
 
     title VARCHAR(250) NOT NULL,
     author VARCHAR,
+    content_description VARCHAR,
 
     created_on TIMESTAMP NOT NULL,
     is_system BOOLEAN NOT NULL,
     is_private BOOLEAN NOT NULL,
+    is_deleted BOOLEAN NOT NULL,
     uploader_id INTEGER NOT NULL,
     FOREIGN KEY (uploader_id) REFERENCES fruser(id),
     lang VARCHAR(6) NOT NULL,
