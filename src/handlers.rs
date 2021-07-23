@@ -349,12 +349,19 @@ pub mod article {
         )
         .await;
 
-        match result {
-            Ok(article) => {
-                HttpResponse::Created().json(models::net::NewArticleResponse::from(article))
-            }
-            Err(_) => article_res::get_create_article_error(),
+        if let Err(_) = result {
+            return article_res::get_create_article_error();
         }
+
+        let article = result.unwrap();
+
+        let save_result = db::article::user::user_save_article(&client, &auth_user.id, &article.id).await;
+
+        if let Err(_) = save_result {
+            return article_res::get_create_article_error();
+        }
+
+        HttpResponse::Created().json(models::net::NewArticleResponse::from(article))
     }
 
     pub mod system {
