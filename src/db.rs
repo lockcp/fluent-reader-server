@@ -693,7 +693,7 @@ pub mod article {
                     $1, $2, $3, $4, 
                     NOW(), $5, $6, $7, 
                     $8, $9, $10, $11,
-                    $12, $13, $14, false
+                    $12, $13, $14, FALSE
                 ) 
                 RETURNING 
                     id, title, author, content_length, 
