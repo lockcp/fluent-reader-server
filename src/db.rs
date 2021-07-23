@@ -759,15 +759,21 @@ pub mod article {
         pub async fn get_system_article(
             client: &Client,
             article_id: &i32,
-        ) -> Result<Option<models::db::Article>, &'static str> {
+        ) -> Result<Option<models::db::ReadArticle>, &'static str> {
             let statement = client
-                .prepare("SELECT * FROM article WHERE id = $1 AND is_system = true")
+                .prepare(r#"
+                    SELECT id, title, author, created_on, is_system, is_private, uploader_id,
+                        lang, tags, content_length, page_data 
+                        FROM article 
+                    WHERE 
+                        id = $1 AND is_system = true
+                "#)
                 .await
                 .unwrap();
 
             match client.query_opt(&statement, &[article_id]).await {
                 Ok(ref row_opt) => match row_opt {
-                    Some(ref row) => match models::db::Article::from_row_ref(row) {
+                    Some(ref row) => match models::db::ReadArticle::from_row_ref(row) {
                         Ok(article) => Ok(Some(article)),
                         Err(err) => {
                             eprintln!("{}", err);
@@ -842,11 +848,12 @@ pub mod article {
             client: &Client,
             article_id: &i32,
             user_id: &i32,
-        ) -> Result<Option<models::db::Article>, &'static str> {
+        ) -> Result<Option<models::db::ReadArticle>, &'static str> {
             let statement = client
                 .prepare(
                     r#"
-                    SELECT * 
+                    SELECT id, title, author, created_on, is_system, is_private, uploader_id,
+                        lang, tags, content_length, page_data 
                         FROM article 
                     WHERE 
                         id = $1 AND 
@@ -859,7 +866,7 @@ pub mod article {
 
             match client.query_opt(&statement, &[article_id, user_id]).await {
                 Ok(ref row_opt) => match row_opt {
-                    Some(ref row) => match models::db::Article::from_row_ref(row) {
+                    Some(ref row) => match models::db::ReadArticle::from_row_ref(row) {
                         Ok(article) => Ok(Some(article)),
                         Err(err) => {
                             eprintln!("{}", err);

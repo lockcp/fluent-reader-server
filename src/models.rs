@@ -327,6 +327,22 @@ pub mod article {
             pub lang: String,
             pub tags: Vec<String>,
         }
+
+        #[derive(Serialize, Deserialize, PostgresMapper)]
+        #[pg_mapper(table = "article")]
+        pub struct ReadArticle {
+            pub id: i32,
+            pub title: String,
+            pub author: Option<String>,
+            pub content_length: i32,
+            pub page_data: serde_json::Value,
+            pub is_private: bool,
+            pub created_on: SystemTime,
+            pub is_system: bool,
+            pub uploader_id: i32,
+            pub lang: String,
+            pub tags: Vec<String>,
+        }
     }
 
     pub mod net {
@@ -364,12 +380,12 @@ pub mod article {
 
         #[derive(Serialize)]
         pub struct GetFullArticleResponse {
-            pub article: Article,
+            pub article: ReadArticle,
         }
 
         impl GetFullArticleResponse {
             #[inline]
-            pub fn new(article: Article) -> GetFullArticleResponse {
+            pub fn new(article: ReadArticle) -> GetFullArticleResponse {
                 GetFullArticleResponse { article }
             }
         }
