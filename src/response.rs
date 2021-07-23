@@ -76,6 +76,13 @@ pub mod article_res {
     }
 
     #[inline]
+    pub fn get_save_article_exists_error() -> HttpResponse {
+        HttpResponse::Conflict().json(ErrorResponse {
+            error: "article_save_exists",
+        })
+    }
+
+    #[inline]
     pub fn get_delete_article_error() -> HttpResponse {
         get_error("article_delete_fail")
     }

@@ -592,7 +592,13 @@ pub mod article {
 
             match result {
                 Ok(()) => get_success(),
-                Err(_) => article_res::get_save_article_error(),
+                Err(err) => {
+                    if err == "exists" { 
+                        article_res::get_save_article_exists_error()
+                    } else {
+                        article_res::get_save_article_error()
+                    }
+                },
             }
         }
 

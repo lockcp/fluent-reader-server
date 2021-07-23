@@ -5,7 +5,7 @@ use serde_json::json;
 use std::io;
 use tokio_pg_mapper::FromTokioPostgresRow;
 use tokio_postgres::types;
-use tokio_postgres::{Error, Statement};
+use tokio_postgres::{Error, Statement, error::SqlState};
 use types::{ToSql, Type};
 
 #[inline]
@@ -911,6 +911,12 @@ pub mod article {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     eprintln!("{}", err);
+                    if let Some(sql_state) = err.code() {
+                        if sql_state.code() == SqlState::UNIQUE_VIOLATION.code() {
+                            println!("exists");
+                            return Err("exists");
+                        }
+                    }
                     Err("Error saving article")
                 }
             }
