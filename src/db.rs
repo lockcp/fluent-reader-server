@@ -884,6 +884,30 @@ pub mod article {
             }
         }
 
+        pub async fn user_delete_article(
+            client: &Client,
+            user_id: &i32,
+            article_id: &i32,
+        ) -> Result<(), &'static str> {
+            let statement = client
+                .prepare(
+                    r#"
+                    DELETE FROM article
+                    WHERE uploader_id = $1 AND id = $2
+                "#,
+                )
+                .await
+                .unwrap();
+
+            match client.execute(&statement, &[user_id, article_id]).await {
+                Ok(_) => Ok(()),
+                Err(err) => {
+                    eprintln!("{}", err);
+                    Err("Failed to delete article")
+                }
+            }
+        }
+
         pub async fn user_save_article(
             client: &Client,
             user_id: &i32,

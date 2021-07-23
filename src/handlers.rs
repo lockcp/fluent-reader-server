@@ -543,6 +543,33 @@ pub mod article {
             }
         }
 
+        #[delete("/article/user/single/{article_id}/")]
+        pub async fn delete_article(
+            db_pool: web::Data<Pool>,
+            web::Path(article_id): web::Path<i32>,
+            auth_user: models::db::ClaimsUser,
+        ) -> impl Responder {
+            let client: Client = match db_pool.get().await {
+                Ok(client) => client,
+                Err(err) => {
+                    eprintln!("{}", err);
+                    return article_res::get_delete_article_error();
+                }
+            };
+
+            let result = db::article::user::user_delete_article(
+                &client,
+                &auth_user.id,
+                &article_id,
+            )
+            .await;
+
+            match result {
+                Ok(()) => get_success(),
+                Err(_) => article_res::get_delete_article_error(),
+            }
+        }
+
         #[get("/article/user/saved/list/")]
         pub async fn get_saved_article_list(
             db_pool: web::Data<Pool>,
