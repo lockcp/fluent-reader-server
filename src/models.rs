@@ -403,12 +403,12 @@ pub mod article {
 
         #[derive(Serialize)]
         pub struct NewArticleResponse {
-            pub article: Article,
+            pub article: SimpleArticle,
         }
 
         impl NewArticleResponse {
             #[inline]
-            pub fn from(article: Article) -> NewArticleResponse {
+            pub fn from(article: SimpleArticle) -> NewArticleResponse {
                 NewArticleResponse { article }
             }
         }

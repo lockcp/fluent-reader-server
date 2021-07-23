@@ -678,7 +678,7 @@ pub mod article {
         is_private: &bool,
         sentence_opt: &Option<(Vec<Vec<&str>>, Vec<i32>)>,
         article_pages: &serde_json::Value,
-    ) -> Result<models::db::Article, &'static str> {
+    ) -> Result<models::db::SimpleArticle, &'static str> {
         let statement = match client
             .prepare(
                 r#"
@@ -695,7 +695,9 @@ pub mod article {
                     $8, $9, $10, $11,
                     $12, $13, $14
                 ) 
-                RETURNING *
+                RETURNING 
+                    id, title, author, content_length, 
+                    created_on, is_system, lang, tags
             "#,
             )
             .await
@@ -739,7 +741,7 @@ pub mod article {
             )
             .await
         {
-            Ok(result) => match models::db::Article::from_row_ref(&result) {
+            Ok(result) => match models::db::SimpleArticle::from_row_ref(&result) {
                 Ok(article) => Ok(article),
                 Err(err) => {
                     eprintln!("{}", err);
