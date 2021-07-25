@@ -42,6 +42,30 @@ pub mod user {
         }
     }
 
+    #[get("/user/")]
+    pub async fn get_user(
+        db_pool: web::Data<Pool>,
+        auth_user: models::db::ClaimsUser,
+    ) -> impl Responder {
+        let client: Client = match db_pool.get().await {
+            Ok(client) => client,
+            Err(err) => {
+                eprintln!("{}", err);
+                return user_res::get_fetch_users_error();
+            }
+        };
+
+        let result = db::user::get_user_by_id(&client, &auth_user.id).await;
+
+        match result {
+            Ok(user_opt) => match user_opt {
+                Some(user) => HttpResponse::Ok().json(models::net::GetUserResponse::new(user)),
+                None => user_res::get_fetch_users_error(),
+            },
+            Err(_) => user_res::get_fetch_users_error(),
+        }
+    }
+
     #[post("/user/reg/")]
     pub async fn register(
         db_pool: web::Data<Pool>,

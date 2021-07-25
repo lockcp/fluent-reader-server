@@ -87,6 +87,8 @@ pub mod user {
         pub struct SimpleUser {
             pub id: i32,
             pub username: String,
+            pub study_lang: String,
+            pub display_lang: String
         }
 
         impl SimpleUser {
@@ -95,6 +97,8 @@ pub mod user {
                 SimpleUser {
                     id: user.id,
                     username: user.username,
+                    study_lang: user.study_lang,
+                    display_lang: user.display_lang
                 }
             }
         }
@@ -169,6 +173,20 @@ pub mod user {
             pub fn new(users: Vec<SimpleUser>) -> GetUsersResponse {
                 let count = users.len() as i64;
                 GetUsersResponse { users, count }
+            }
+        }
+
+        #[derive(Serialize)]
+        pub struct GetUserResponse {
+            pub user: SimpleUser,
+        }
+
+        impl GetUserResponse {
+            #[inline]
+            pub fn new(user: User) -> GetUserResponse {
+                GetUserResponse {
+                    user: SimpleUser::new(user)
+                }
             }
         }
 

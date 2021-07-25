@@ -64,6 +64,7 @@ async fn main() -> std::io::Result<()> {
             .service(user::update_user)
             .service(user::refresh)
             .service(user::auth)
+            .service(user::get_user)
             .service(user::data::get_user_word_data)
             .service(user::data::update_word_status)
             .service(user::data::batch_update_word_status)
