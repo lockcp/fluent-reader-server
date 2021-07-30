@@ -625,45 +625,6 @@ pub mod user {
 pub mod article {
     use super::*;
 
-    // WARNING: THIS DOES NOT MAKE ANY CHECKS FOR SYSTEM/NON-SYSTEM, PRIVATE/NON-PRIVATE
-    //
-    // PLEASE CONSIDER THE FOLLOWING METHODS INSTEAD
-    //
-    // SINGLE ARTICLE METHODS
-    // FOR GETTING A SYSTEM ARTICLE, PLEASE USE get_system_article
-    // FOR GETTING A USER ARTICLE, PLEASE USE get_user_article
-    //
-    // ARTICLE LIST METHODS
-    // FOR GETTING SYSTEM ARTICLES, PLEASE USE get_system_article_list
-    // FOR GETTING ARTICLES A USER HAS SAVED, PLEASE USE get_user_saved_article_list
-    // FOR GETTING ARTICLES A USER UPLOADED, PLEASE USE get_user_uploaded_article_list
-    pub async fn get_article(
-        client: &Client,
-        article_id: &i32,
-    ) -> Result<Option<models::db::Article>, &'static str> {
-        let statement = client
-            .prepare("SELECT * FROM article WHERE id = $1")
-            .await
-            .unwrap();
-
-        match client.query_opt(&statement, &[article_id]).await {
-            Ok(ref row_opt) => match row_opt {
-                Some(ref row) => match models::db::Article::from_row_ref(row) {
-                    Ok(article) => Ok(Some(article)),
-                    Err(err) => {
-                        eprintln!("{}", err);
-                        Err("Error getting article")
-                    }
-                },
-                None => Ok(None),
-            },
-            Err(err) => {
-                eprintln!("{}", err);
-                Err("Error getting article")
-            }
-        }
-    }
-
     pub async fn create_article(
         client: &Client,
         title: &String,
