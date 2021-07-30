@@ -45,6 +45,7 @@ pub mod user {
         pub struct User {
             pub id: i32,
             pub username: String,
+            pub display_name: String,
             pub pass: String,
             pub created_on: SystemTime,
             pub study_lang: String,
@@ -54,6 +55,7 @@ pub mod user {
 
         pub struct UpdateUserOpt {
             pub username: Option<String>,
+            pub display_name: Option<String>,
             pub pass: Option<String>,
             pub study_lang: Option<String>,
             pub display_lang: Option<String>,
@@ -64,6 +66,7 @@ pub mod user {
             pub fn none() -> Self {
                 Self {
                     username: None,
+                    display_name: None,
                     pass: None,
                     study_lang: None,
                     display_lang: None,
@@ -74,6 +77,7 @@ pub mod user {
             pub fn from_req(req: net::UpdateUserRequest) -> Self {
                 Self {
                     username: req.username,
+                    display_name: req.display_name,
                     pass: req.password,
                     study_lang: req.study_lang,
                     display_lang: req.display_lang,
@@ -86,7 +90,7 @@ pub mod user {
         #[pg_mapper(table = "fruser")]
         pub struct SimpleUser {
             pub id: i32,
-            pub username: String,
+            pub display_name: String,
             pub study_lang: String,
             pub display_lang: String
         }
@@ -96,7 +100,7 @@ pub mod user {
             pub fn new(user: User) -> SimpleUser {
                 SimpleUser {
                     id: user.id,
-                    username: user.username,
+                    display_name: user.display_name,
                     study_lang: user.study_lang,
                     display_lang: user.display_lang
                 }
@@ -114,6 +118,7 @@ pub mod user {
             #[derive(Deserialize)]
             pub struct RegisterRequest {
                 pub username: String,
+                pub display_name: String,
                 pub password: String,
                 pub study_lang: String,
                 pub display_lang: String,
@@ -126,9 +131,9 @@ pub mod user {
 
             impl RegisterResponse {
                 #[inline]
-                pub fn new(user: User) -> RegisterResponse {
+                pub fn new(user: SimpleUser) -> RegisterResponse {
                     RegisterResponse {
-                        user: SimpleUser::new(user),
+                        user,
                     }
                 }
             }
@@ -193,6 +198,7 @@ pub mod user {
         #[derive(Deserialize)]
         pub struct UpdateUserRequest {
             pub username: Option<String>,
+            pub display_name: Option<String>,
             pub password: Option<String>,
             pub study_lang: Option<String>,
             pub display_lang: Option<String>,
@@ -315,7 +321,7 @@ pub mod article {
             pub title: String,
             pub author: Option<String>,
             pub content: String,
-            pub content_length: i32,
+            pub unique_word_count: i32,
             pub words: Vec<String>,
             pub sentences: serde_json::Value,
             pub unique_words: serde_json::Value,
@@ -331,35 +337,85 @@ pub mod article {
         #[pg_mapper(table = "article")]
         pub struct SimpleArticle {
             pub id: i32,
+
             pub title: String,
             pub author: Option<String>,
-            // no content
-            pub content_length: i32,
-            // no words
-            // no sentences
-            // no unique words
-            // no pages
             pub created_on: SystemTime,
+            pub uploader_id: i32,
+            pub content_description: Option<String>,
+
             pub is_system: bool,
-            // no uploader_id
+            pub is_private: bool,
+
             pub lang: String,
             pub tags: Vec<String>,
+
+            pub unique_word_count: i32
+        }
+
+        #[derive(Serialize, Deserialize, PostgresMapper)]
+        #[pg_mapper(table = "article")]
+        pub struct NewArticle {
+            pub id: i32,
+            pub title: String,
+            pub created_on: SystemTime,
         }
 
         #[derive(Serialize, Deserialize, PostgresMapper)]
         #[pg_mapper(table = "article")]
         pub struct ReadArticle {
             pub id: i32,
+
             pub title: String,
             pub author: Option<String>,
-            pub content_length: i32,
-            pub page_data: serde_json::Value,
-            pub is_private: bool,
             pub created_on: SystemTime,
-            pub is_system: bool,
             pub uploader_id: i32,
+
+            pub is_system: bool,
+            pub is_private: bool,
+
             pub lang: String,
             pub tags: Vec<String>,
+
+            pub word_count: i32,
+
+            pub unique_word_count: i32,
+
+            pub word_index_map: serde_json::Value,
+            pub stop_word_map: serde_json::Value,
+
+            pub page_data: serde_json::Value,
+        }
+
+        #[derive(Serialize, Deserialize)]
+        pub struct ArticleMetadata {
+            pub title: String,
+            pub author: Option<String>,
+            pub uploader_id: i32,
+            pub content_description: Option<String>,
+
+            pub is_private: bool,
+
+            pub lang: String,
+            pub tags: Option<Vec<String>>,
+        }
+
+        #[derive(Serialize, Deserialize)]
+        pub struct ArticleMainData {
+            pub content: String,
+
+            pub word_count: i32,
+
+            pub unique_words: serde_json::Value,
+            pub unique_word_count: i32,
+
+            pub word_index_map: serde_json::Value,
+            pub stop_word_map: serde_json::Value,
+
+            pub sentences: Option<serde_json::Value>,
+            pub sentence_stops: Option<Vec<i32>>,
+
+            pub page_data: serde_json::Value,
         }
     }
 
@@ -414,6 +470,7 @@ pub mod article {
             pub title: String,
             pub author: Option<String>,
             pub content: String,
+            pub content_description: Option<String>,
             pub language: String,
             pub tags: Option<Vec<String>>,
             pub is_private: bool,
@@ -421,12 +478,12 @@ pub mod article {
 
         #[derive(Serialize)]
         pub struct NewArticleResponse {
-            pub article: SimpleArticle,
+            pub article: NewArticle,
         }
 
         impl NewArticleResponse {
             #[inline]
-            pub fn from(article: SimpleArticle) -> NewArticleResponse {
+            pub fn from(article: NewArticle) -> NewArticleResponse {
                 NewArticleResponse { article }
             }
         }

@@ -7,6 +7,7 @@ use crate::util;
 
 use actix_web::{delete, get, patch, post, put, web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
+use std::convert::TryFrom;
 
 #[get("/")]
 pub async fn status() -> impl Responder {
@@ -91,6 +92,7 @@ pub mod user {
         let create_result = db::user::create_user(
             &client,
             &json.username,
+            &json.display_name,
             &json.password,
             &json.study_lang,
             &json.display_lang,
@@ -349,27 +351,49 @@ pub mod article {
             }
         };
 
-        let text = &json.content[..];
-        let lang = &json.language[..];
-        let words = lang::get_words(text, lang);
-        let (unique_words, total_word_count) = lang::get_unique_words(&words);
-        let sentences_opt = lang::get_sentences(text, &words, lang);
+        let models::net::NewArticleRequest { title, author, content_description, language, tags, content, is_private } = json.0;
+        
+        let words = lang::get_words_owned(&content[..], &language[..]);
+        let (unique_words, total_word_count, word_index_map, stop_word_map) = lang::get_article_main_data(&words[..]);
+        let sentences_opt = lang::get_sentences(&content[..], &words[..], &language[..]);
         let pages = lang::get_pages(&sentences_opt);
+
+        let (sentences, sentence_stops) = match sentences_opt {
+            Some((sentences, sentence_stops)) => (Some(serde_json::to_value(sentences).unwrap()), Some(sentence_stops)),
+            None => (None, None)
+        };
+
 
         let result = db::article::create_article(
             &client,
-            &json.title,
-            &json.author,
-            &json.content,
-            &total_word_count,
-            &auth_user.id,
-            &json.language,
-            &json.tags,
-            &words,
-            &unique_words,
-            &json.is_private,
-            &sentences_opt,
-            &pages,
+            models::db::ArticleMetadata {
+                title: title,
+                author: author,
+                uploader_id: auth_user.id,
+                content_description: content_description,
+
+                is_private: is_private,
+
+                lang: language,
+                tags: tags
+            },
+            models::db::ArticleMainData {
+                content: content,
+
+                word_count: i32::try_from(words.len()).ok().unwrap(),
+
+                unique_words,
+                unique_word_count: i32::try_from(total_word_count).ok().unwrap(),
+
+                word_index_map,
+                stop_word_map, 
+
+                sentences,
+                sentence_stops,
+
+                page_data: pages
+            },
+            words
         )
         .await;
 

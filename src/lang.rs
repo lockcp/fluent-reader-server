@@ -6,29 +6,45 @@ use std::convert::TryInto;
 use std::iter::FromIterator;
 use unicode_segmentation::UnicodeSegmentation;
 
-pub fn get_words<'a>(text: &'a str, lang: &str) -> Vec<&'a str> {
+pub fn get_words_owned(text: &str, lang: &str) -> Vec<String> {
     match lang {
-        "en" => get_words_english(text),
-        "zh" | "zh-CN" | "zh-TW" => get_words_chinese(text),
+        "en" => get_words_english_owned(text),
+        "zh" | "zh-CN" | "zh-TW" => get_words_chinese_owned(text),
         _ => panic!("Got unsupported language for get_words: {}", text),
     }
 }
 
-fn get_words_english<'a>(text: &'a str) -> Vec<&'a str> {
+pub fn get_words_slice<'a>(text: &'a str, lang: &str) -> Vec<&'a str> {
+    match lang {
+        "en" => get_words_english_slice(text),
+        "zh" | "zh-CN" | "zh-TW" => get_words_chinese_slice(text),
+        _ => panic!("Got unsupported language for get_words: {}", text),
+    }
+}
+
+fn get_words_english_slice(text: &str) -> Vec<&str> {
     text.split_word_bounds().collect::<Vec<&str>>()
+}
+
+fn get_words_english_owned(text: &str) -> Vec<String> {
+    text.split_word_bounds().map(|slice| slice.to_string()).collect::<Vec<String>>()
 }
 
 lazy_static! {
     static ref JIEBA: Jieba = Jieba::new();
 }
 
-fn get_words_chinese<'a>(text: &'a str) -> Vec<&'a str> {
+fn get_words_chinese_slice(text: &str) -> Vec<&str> {
     JIEBA.cut(text, false)
+}
+
+fn get_words_chinese_owned(text: &str) -> Vec<String> {
+    JIEBA.cut(text, false).iter().map(|slice| slice.to_string()).collect::<Vec<String>>()
 }
 
 pub fn get_sentences<'a>(
     text: &'a str,
-    words: &[&'a str],
+    words: &'a [String],
     lang: &str,
 ) -> Option<(Vec<Vec<&'a str>>, Vec<i32>)> {
     // Only English sentence segmentation supported
@@ -69,7 +85,7 @@ pub fn get_sentences<'a>(
         let mut sentence: Vec<&str> = vec![];
 
         for word_index in start_index..end_index {
-            sentence.push(words[word_index]);
+            sentence.push(&words[word_index][..]);
         }
 
         sentence_arr.push(sentence);
@@ -86,19 +102,25 @@ lazy_static! {
     );
 }
 
-pub fn get_unique_words(words: &[&str]) -> (serde_json::Value, usize) {
+pub fn get_article_main_data(words: &[String]) -> (serde_json::Value, usize, serde_json::Value, serde_json::Value) {
     let mut unique_words = json!({});
     let mut word_indices = json!({});
     let mut total_word_count = 0usize;
+    let mut stop_words = json!({});
 
     let unique_words_map = match unique_words {
         serde_json::Value::Object(ref mut map) => map,
         _ => panic!("unique_words serde_json::Value isn't an Object!"),
     };
 
-    let word_indices_map = match word_indices {
+    let word_index_map = match word_indices {
         serde_json::Value::Object(ref mut map) => map,
         _ => panic!("word_indices serde_json::Value isn't an Object!"),
+    };
+
+    let stop_word_map = match stop_words {
+        serde_json::Value::Object(ref mut map) => map,
+        _ => panic!("stop_words serde_json::Value isn't an Object!"),
     };
 
     for (index, word) in words.iter().enumerate() {
@@ -116,18 +138,24 @@ pub fn get_unique_words(words: &[&str]) -> (serde_json::Value, usize) {
                 }
             };
 
-            match word_indices_map.get_mut(&lowercase) {
+            match word_index_map.get_mut(&lowercase) {
                 Some(index_arr_val) => {
                     index_arr_val.as_array_mut().unwrap().push(json!(index));
                 }
                 None => {
-                    word_indices_map.insert(lowercase, json!([index]));
+                    word_index_map.insert(lowercase, json!([index]));
+                }
+            }
+        } else {
+            match stop_word_map.get_mut(&lowercase) {
+                Some(_) | None => {
+                    stop_word_map.insert(index.to_string(), json!(true));
                 }
             }
         }
     }
 
-    (unique_words, total_word_count)
+    (unique_words, total_word_count, word_indices, stop_words)
 }
 
 pub fn get_or_query_string(
@@ -137,7 +165,7 @@ pub fn get_or_query_string(
     match string_opt {
         Some(ref string) => match lang_opt {
             Some(ref lang) => Some(
-                get_words(&string[..], &lang[..])
+                get_words_slice(&string[..], &lang[..])
                     .iter()
                     .filter_map(|&word| match word {
                         " " => None,
@@ -182,29 +210,14 @@ pub fn get_pages<'a>(sentences_opt: &Option<(Vec<Vec<&'a str>>, Vec<i32>)>) -> s
 
     let mut remain_pg_len_sm: i32 = SMALL_PAGE_SIZE;
     let mut curr_pg_sm = 0;
-    let mut word_index_map_sm_val = json!({});
-    let word_index_map_sm = match word_index_map_sm_val {
-        serde_json::Value::Object(ref mut map) => map,
-        _ => panic!("serde_json::Value isn't an Object!"),
-    };
     pages_sm.push(vec![]);
 
     let mut remain_pg_len_md: i32 = MEDIUM_PAGE_SIZE;
     let mut curr_pg_md = 0;
-    let mut word_index_map_md_val = json!({});
-    let word_index_map_md = match word_index_map_md_val {
-        serde_json::Value::Object(ref mut map) => map,
-        _ => panic!("serde_json::Value isn't an Object!"),
-    };
     pages_md.push(vec![]);
 
     let mut remain_pg_len_lg: i32 = LARGE_PAGE_SIZE;
     let mut curr_pg_lg = 0;
-    let mut word_index_map_lg_val = json!({});
-    let word_index_map_lg = match word_index_map_lg_val {
-        serde_json::Value::Object(ref mut map) => map,
-        _ => panic!("serde_json::Value isn't an Object!"),
-    };
     pages_lg.push(vec![]);
 
     for sentence in sentences {
@@ -254,15 +267,12 @@ pub fn get_pages<'a>(sentences_opt: &Option<(Vec<Vec<&'a str>>, Vec<i32>)>) -> s
     json!([
         {
             "pages": pages_sm,
-            "wordIndexMaps": []
         },
         {
             "pages": pages_md,
-            "wordIndexMaps": []
         },
         {
             "pages": pages_lg,
-            "wordIndexMaps": []
         }
     ])
 }
@@ -273,7 +283,7 @@ mod tests {
 
     #[test]
     fn english_word_split_1() {
-        let words = get_words_english(
+        let words = get_words_english_slice(
             r#"
             Chapter 1
 
@@ -299,6 +309,6 @@ mod tests {
         In my younger and more vulnerable years. My father gave me some advice that I've been turning. Over in my mind ever since. "Whenever you feel like criticizing any one," he. Told me, "just remember that all the people in this world haven't had the advantages that you've had."
         "#;
 
-        get_sentences(text, &get_words_english(text), "en");
+        get_sentences(text, &get_words_english_owned(text)[..], "en");
     }
 }
