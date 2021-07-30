@@ -1132,7 +1132,15 @@ pub mod article {
                 .prepare(
                     &format!(
                         r#"
-                            SELECT id, title, author, unique_word_count, created_on, is_system, lang, tags 
+                            SELECT 
+                                id, title, author, created_on, uploader_id, content_description,
+                    
+                                is_system, is_private,
+                                
+                                lang, tags,
+
+                                unique_word_count 
+                                
                                 FROM article 
                             WHERE 
                                 is_deleted = false AND
