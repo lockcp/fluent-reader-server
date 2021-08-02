@@ -29,7 +29,7 @@ CREATE TABLE fruser (
     id SERIAL PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
     display_name VARCHAR UNIQUE NOT NULL,
-    pass VARCHAR(200) NOT NULL,
+    pass VARCHAR NOT NULL,
     created_on TIMESTAMP NOT NULL,
     study_lang VARCHAR(6),
     display_lang VARCHAR(6),
