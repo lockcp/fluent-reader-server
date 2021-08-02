@@ -5,7 +5,7 @@ use serde_json::json;
 use std::io;
 use tokio_pg_mapper::FromTokioPostgresRow;
 use tokio_postgres::types;
-use tokio_postgres::{Error, Statement, error::SqlState};
+use tokio_postgres::{error::SqlState, Error, Statement};
 use types::{ToSql, Type};
 
 #[inline]
@@ -92,7 +92,7 @@ pub mod user {
     }
 
     fn extract_opt_inc_param<'a, T, U>(
-        params: &mut [&'a (dyn ToSql + Sync); 6],
+        params: &mut [&'a (dyn ToSql + Sync); 7],
         current_param: &mut usize,
         opt: &'a Option<T>,
         name: &str,
@@ -113,7 +113,7 @@ pub mod user {
         user_id: &i32,
         update: &models::db::UpdateUserOpt,
     ) -> Result<(), &'static str> {
-        let mut params: [&'_ (dyn ToSql + Sync); 6] = [&0; 6];
+        let mut params: [&'_ (dyn ToSql + Sync); 7] = [&0; 7];
         let mut current_param: usize = 0;
 
         let mut update_statements: Vec<String> = vec![];
@@ -127,6 +127,13 @@ pub mod user {
             &mut current_param,
             &update.username,
             "username",
+            &mut add_to_statement,
+        );
+        extract_opt_inc_param(
+            &mut params,
+            &mut current_param,
+            &update.display_name,
+            "display_name",
             &mut add_to_statement,
         );
         extract_opt_inc_param(
@@ -208,14 +215,14 @@ pub mod user {
 
     #[inline]
     async fn prepare_user_creation_statements(
-        client: &Client,
+        trans: &deadpool_postgres::Transaction<'_>,
     ) -> Result<(Statement, Statement), tokio_postgres::error::Error> {
-        let insert_user_ft = client.prepare(
+        let insert_user_ft = trans.prepare(
             "INSERT INTO fruser (username, display_name, pass, created_on, study_lang, display_lang, refresh_token)
                 VALUES ($1, $2, $3, NOW(), $4, $5, $6) RETURNING id, display_name, study_lang, display_lang",
         );
 
-        let insert_word_data_ft = client
+        let insert_word_data_ft = trans
             .prepare(
                 r#"
                 INSERT INTO user_word_data (fruser_id, word_status_data, word_definition_data)
@@ -232,55 +239,68 @@ pub mod user {
     }
 
     pub async fn create_user(
-        client: &Client,
+        client: &mut Client,
         username: &String,
         display_name: &String,
         password: &String,
         study_lang: &String,
         display_lang: &String,
     ) -> Result<models::db::SimpleUser, &'static str> {
-        let prepare_result = prepare_user_creation_statements(client).await;
+        let user_err = Err("Error creating user");
 
-        if let Err(err) = prepare_result {
-            eprintln!("{}", err);
-            return Err("Error creating user");
-        }
+        let trans = match client.transaction().await {
+            Ok(trans) => trans,
+            Err(err) => {
+                eprintln!("{}", err);
+                return user_err;
+            }
+        };
 
-        let (insert_user, insert_word_data) = prepare_result.unwrap();
+        let (insert_user, insert_word_data) = match prepare_user_creation_statements(&trans).await {
+            Ok((insert_user, insert_word_data)) => (insert_user, insert_word_data),
+            Err(err) => {
+                eprintln!("{}", err);
+                return user_err;
+            }
+        };
 
-        let insert_user_result: Result<models::db::SimpleUser, &'static str> = match client
+        let user: models::db::SimpleUser = match trans
             .query_one(
                 &insert_user,
-                &[username, display_name, password, study_lang, display_lang, &""],
+                &[
+                    username,
+                    display_name,
+                    password,
+                    study_lang,
+                    display_lang,
+                    &"",
+                ],
             )
             .await
         {
             Ok(result) => match models::db::SimpleUser::from_row_ref(&result) {
-                Ok(user) => Ok(user),
+                Ok(user) => user,
                 Err(err) => {
                     eprintln!("{}", err);
-                    return Err("Error creating user");
+                    return user_err;
                 }
             },
             Err(err) => {
                 eprintln!("{}", err);
-                return Err("Error creating user");
+                return user_err;
             }
         };
 
-        let user = insert_user_result.unwrap();
-
-        let insert_word_data_result = client.query_opt(&insert_word_data, &[&user.id]).await;
+        let insert_word_data_result = trans.query_opt(&insert_word_data, &[&user.id]).await;
 
         if let Err(err) = insert_word_data_result {
-            // TODO:
-            // attempt to remove the already created user
-            // if the insert_word_data statement fails
-            // so that login is not still successful if the
-            // user creation succeeded but this part did not
-
             eprintln!("{}", err);
-            return Err("Error creating user");
+            return user_err;
+        }
+
+        if let Err(err) = trans.commit().await {
+            eprintln!("{}", err);
+            return user_err;
         }
 
         Ok(user)
@@ -546,11 +566,11 @@ pub mod user {
             client: &Client,
             user_id: &i32,
             lang: &String,
-            words: &Vec<String>,
+            words: &[String],
             new_status: &String,
         ) -> Result<(), &'static str> {
             let (insert_json, json_delete_str) =
-                get_batch_update_json_strings(&words[..], &new_status[..]);
+                get_batch_update_json_strings(words, &new_status[..]);
 
             let statement = match get_batch_update_statement(
                 client,
@@ -567,7 +587,7 @@ pub mod user {
                 }
             };
 
-            let vectored_words = get_vectored_words(&words[..]);
+            let vectored_words = get_vectored_words(words);
 
             let params = build_batch_update_params(
                 lang,
@@ -627,6 +647,158 @@ pub mod user {
                 }
             }
         }
+
+        pub async fn create_read_data(
+            client: &Client,
+            user_id: &i32,
+            article_id: &i32,
+        ) -> Result<(), &'static str> {
+            let insert_statement = client
+                .prepare(
+                    r#"
+                INSERT INTO read_article_data (fruser_id, article_id, learned_words, underlines)
+                VALUES 
+                (
+                    $1, 
+                    (
+                        SELECT id 
+                        FROM article
+                        WHERE 
+                            id = $2 AND
+                            (
+                                NOT is_private OR 
+                                uploader_id = $1
+                            ) AND
+                            is_deleted = FALSE
+                    ), 
+                    '{}',
+                    '{}'
+                )
+            "#,
+                )
+                .await
+                .unwrap();
+
+            match client
+                .execute(&insert_statement, &[&user_id, &article_id])
+                .await
+            {
+                Ok(_) => Ok(()),
+                Err(err) => {
+                    eprintln!("{}", err);
+                    if let Some(sql_state) = err.code() {
+                        if sql_state.code() == SqlState::UNIQUE_VIOLATION.code() {
+                            println!("exists");
+                            return Err("exists");
+                        }
+                    }
+                    Err("Couldn't create read article data")
+                }
+            }
+        }
+
+        pub async fn get_read_data(
+            client: &Client,
+            user_id: &i32,
+            article_id: &i32,
+        ) -> Result<models::db::ReadData, &'static str> {
+            let statement = client
+                .prepare(
+                    r#"
+                SELECT * FROM read_article_data
+                WHERE fruser_id = $1 AND article_id = $2
+            "#,
+                )
+                .await
+                .unwrap();
+
+            let get_read_data_err = Err("Couldn't get read article data");
+
+            match client.query_one(&statement, &[&user_id, &article_id]).await {
+                Ok(row) => match models::db::ReadData::from_row_ref(&row) {
+                    Ok(read_data) => Ok(read_data),
+                    Err(err) => {
+                        eprintln!("{}", err);
+                        get_read_data_err
+                    }
+                },
+                Err(err) => {
+                    eprintln!("{}", err);
+                    get_read_data_err
+                }
+            }
+        }
+
+        pub async fn mark_article(
+            client: &Client,
+            user_id: &i32,
+            article_id: &i32,
+            mark: &models::db::Mark,
+        ) -> Result<(), &'static str> {
+            let statement = client
+                .prepare(
+                    r#"
+                UPDATE read_article_data 
+                SET underlines = array_append(underlines, $3)
+                WHERE fruser_id = $1 AND article_id = $2
+            "#,
+                )
+                .await
+                .unwrap();
+
+            match client
+                .execute(
+                    &statement,
+                    &[&user_id, &article_id, &serde_json::to_value(mark).unwrap()],
+                )
+                .await
+            {
+                Ok(_) => Ok(()),
+                Err(err) => {
+                    eprintln!("{}", err);
+                    Err("Couldn't mark article")
+                }
+            }
+        }
+
+        pub async fn delete_mark(
+            client: &Client,
+            user_id: i32,
+            article_id: i32,
+            index: i32,
+        ) -> Result<(), &'static str> {
+            let one_index = index + 1;
+            let slice = match one_index {
+                1 => "underlines[2:]".to_owned(),
+                _ => format!(
+                    "underlines[1:{}] || underlines[{}:]",
+                    one_index - 1,
+                    one_index + 1
+                ),
+            };
+
+            let statement = client
+                .prepare(
+                    &format!(
+                        r#"
+                            UPDATE read_article_data 
+                            SET underlines = {}
+                            WHERE fruser_id = $1 AND article_id = $2
+                        "#,
+                        slice
+                    )[..],
+                )
+                .await
+                .unwrap();
+
+            match client.execute(&statement, &[&user_id, &article_id]).await {
+                Ok(_) => Ok(()),
+                Err(err) => {
+                    eprintln!("{}", err);
+                    Err("Couldn't delete article mark")
+                }
+            }
+        }
     }
 }
 
@@ -637,7 +809,7 @@ pub mod article {
         client: &Client,
         article_meta_data: models::db::ArticleMetadata,
         article_main_data: models::db::ArticleMainData,
-        words: Vec<String>
+        words: Vec<String>,
     ) -> Result<models::db::NewArticle, &'static str> {
         let statement = match client
             .prepare(
@@ -699,7 +871,6 @@ pub mod article {
             None => vec![],
         };
 
-
         match client
             .query_one(
                 &statement,
@@ -709,28 +880,20 @@ pub mod article {
                     // created_on = NOW()
                     &article_meta_data.uploader_id,
                     &article_meta_data.content_description,
-
                     &((article_meta_data.uploader_id == 1) as bool), // is_system
                     &article_meta_data.is_private,
                     // is_deleted = FALSE
-
                     &article_meta_data.lang,
                     &tags,
-
                     &article_main_data.content,
-
                     &words,
                     &article_main_data.word_count,
-
                     &article_main_data.unique_words,
                     &article_main_data.unique_word_count,
-
                     &article_main_data.word_index_map,
                     &article_main_data.stop_word_map,
-
                     &article_main_data.sentences,
                     &article_main_data.sentence_stops,
-
                     &article_main_data.page_data,
                 ],
             )
@@ -758,7 +921,8 @@ pub mod article {
             article_id: &i32,
         ) -> Result<Option<models::db::ReadArticle>, &'static str> {
             let statement = client
-                .prepare(r#"
+                .prepare(
+                    r#"
                     SELECT 
                         id, title, author, created_on, uploader_id, content_description,
                         
@@ -775,7 +939,8 @@ pub mod article {
                         FROM article 
                     WHERE 
                         id = $1 AND is_system = true AND is_deleted = false
-                "#)
+                "#,
+                )
                 .await
                 .unwrap();
 
@@ -1151,9 +1316,9 @@ pub mod article {
                             ORDER BY {} DESC 
                             LIMIT $5
                             OFFSET $4
-                        "#, 
+                        "#,
                         order_by_str
-                    )[..]
+                    )[..],
                 )
                 .await
                 .unwrap();

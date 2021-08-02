@@ -3,7 +3,6 @@ use lazy_static::lazy_static;
 use serde_json::json;
 use std::collections::HashSet;
 use std::convert::TryInto;
-use std::iter::FromIterator;
 use unicode_segmentation::UnicodeSegmentation;
 
 pub fn get_words_owned(text: &str, lang: &str) -> Vec<String> {
@@ -27,7 +26,9 @@ fn get_words_english_slice(text: &str) -> Vec<&str> {
 }
 
 fn get_words_english_owned(text: &str) -> Vec<String> {
-    text.split_word_bounds().map(|slice| slice.to_string()).collect::<Vec<String>>()
+    text.split_word_bounds()
+        .map(|slice| slice.to_string())
+        .collect::<Vec<String>>()
 }
 
 lazy_static! {
@@ -39,7 +40,11 @@ fn get_words_chinese_slice(text: &str) -> Vec<&str> {
 }
 
 fn get_words_chinese_owned(text: &str) -> Vec<String> {
-    JIEBA.cut(text, false).iter().map(|slice| slice.to_string()).collect::<Vec<String>>()
+    JIEBA
+        .cut(text, false)
+        .iter()
+        .map(|slice| slice.to_string())
+        .collect::<Vec<String>>()
 }
 
 pub fn get_sentences<'a>(
@@ -84,8 +89,8 @@ pub fn get_sentences<'a>(
 
         let mut sentence: Vec<&str> = vec![];
 
-        for word_index in start_index..end_index {
-            sentence.push(&words[word_index][..]);
+        for word in words.iter().take(end_index).skip(start_index) {
+            sentence.push(&word[..]);
         }
 
         sentence_arr.push(sentence);
@@ -95,14 +100,21 @@ pub fn get_sentences<'a>(
 }
 
 lazy_static! {
-    static ref STOP_CHARS: HashSet<&'static str> = HashSet::from_iter(
+    static ref STOP_CHARS: HashSet<&'static str> =
         "!\"#$%&'()*+,-./:;<=>?@[\\]^_{|}~`。？！，、；：“ ” ‘ ’「」『』（）【】—…-～	
 《》〈〉_ "
             .split("")
-    );
+            .collect();
 }
 
-pub fn get_article_main_data(words: &[String]) -> (serde_json::Value, usize, serde_json::Value, serde_json::Value) {
+pub fn get_article_main_data(
+    words: &[String],
+) -> (
+    serde_json::Value,
+    usize,
+    serde_json::Value,
+    serde_json::Value,
+) {
     let mut unique_words = json!({});
     let mut word_indices = json!({});
     let mut total_word_count = 0usize;
@@ -162,21 +174,22 @@ pub fn get_or_query_string(
     string_opt: &Option<String>,
     lang_opt: &Option<String>,
 ) -> Option<String> {
-    match string_opt {
-        Some(ref string) => match lang_opt {
-            Some(ref lang) => Some(
-                get_words_slice(&string[..], &lang[..])
-                    .iter()
-                    .filter_map(|&word| match word {
-                        " " => None,
-                        _ => Some(word),
-                    })
-                    .collect::<Vec<&str>>()
-                    .join(" OR "),
-            ),
-            None => None,
-        },
-        None => None,
+    if string_opt.is_some() && lang_opt.is_some() {
+        Some(
+            get_words_slice(
+                &string_opt.as_ref().unwrap()[..],
+                &lang_opt.as_ref().unwrap()[..],
+            )
+            .iter()
+            .filter_map(|&word| match word {
+                " " => None,
+                _ => Some(word),
+            })
+            .collect::<Vec<&str>>()
+            .join(" OR "),
+        )
+    } else {
+        None
     }
 }
 
@@ -184,7 +197,7 @@ const SMALL_PAGE_SIZE: i32 = 100;
 const MEDIUM_PAGE_SIZE: i32 = 150;
 const LARGE_PAGE_SIZE: i32 = 200;
 
-pub fn get_pages<'a>(sentences_opt: &Option<(Vec<Vec<&'a str>>, Vec<i32>)>) -> serde_json::Value {
+pub fn get_pages(sentences_opt: &Option<(Vec<Vec<&str>>, Vec<i32>)>) -> serde_json::Value {
     let mut pages_sm: Vec<Vec<&str>> = vec![];
     let mut pages_md: Vec<Vec<&str>> = vec![];
     let mut pages_lg: Vec<Vec<&str>> = vec![];

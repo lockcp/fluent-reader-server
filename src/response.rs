@@ -55,6 +55,33 @@ pub mod user_res {
     pub fn get_auth_failed_error() -> HttpResponse {
         HttpResponse::Unauthorized().json(ErrorResponse { error: "auth_fail" })
     }
+
+    #[inline]
+    pub fn get_fetch_read_data_error() -> HttpResponse {
+        get_error("fetch_read_data_fail")
+    }
+
+    #[inline]
+    pub fn get_create_read_data_error() -> HttpResponse {
+        get_error("create_read_data_fail")
+    }
+
+    #[inline]
+    pub fn get_read_data_exists_error() -> HttpResponse {
+        HttpResponse::Conflict().json(ErrorResponse {
+            error: "read_data_exists",
+        })
+    }
+
+    #[inline]
+    pub fn get_mark_article_error() -> HttpResponse {
+        get_error("mark_article_fail")
+    }
+
+    #[inline]
+    pub fn delete_mark_error() -> HttpResponse {
+        get_error("delete_mark_error")
+    }
 }
 
 pub mod article_res {

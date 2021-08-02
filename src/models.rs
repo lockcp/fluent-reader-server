@@ -92,7 +92,7 @@ pub mod user {
             pub id: i32,
             pub display_name: String,
             pub study_lang: String,
-            pub display_lang: String
+            pub display_lang: String,
         }
 
         impl SimpleUser {
@@ -102,7 +102,7 @@ pub mod user {
                     id: user.id,
                     display_name: user.display_name,
                     study_lang: user.study_lang,
-                    display_lang: user.display_lang
+                    display_lang: user.display_lang,
                 }
             }
         }
@@ -132,9 +132,7 @@ pub mod user {
             impl RegisterResponse {
                 #[inline]
                 pub fn new(user: SimpleUser) -> RegisterResponse {
-                    RegisterResponse {
-                        user,
-                    }
+                    RegisterResponse { user }
                 }
             }
 
@@ -190,7 +188,7 @@ pub mod user {
             #[inline]
             pub fn new(user: User) -> GetUserResponse {
                 GetUserResponse {
-                    user: SimpleUser::new(user)
+                    user: SimpleUser::new(user),
                 }
             }
         }
@@ -267,6 +265,27 @@ pub mod user {
                 pub word_status_data: serde_json::Value,
                 pub word_definition_data: serde_json::Value,
             }
+
+            #[derive(Serialize, Deserialize)]
+            pub struct Selection {
+                start: usize,
+                end: usize,
+            }
+
+            #[derive(Serialize, Deserialize)]
+            pub struct Mark {
+                pub mark_type: String,
+                pub selection: Selection,
+            }
+
+            #[derive(Serialize, Deserialize, PostgresMapper)]
+            #[pg_mapper(table = "read_article_data")]
+            pub struct ReadData {
+                pub fruser_id: i32,
+                pub article_id: i32,
+                pub learned_words: Vec<serde_json::Value>,
+                pub underlines: Vec<serde_json::Value>,
+            }
         }
 
         pub mod net {
@@ -303,6 +322,29 @@ pub mod user {
                 pub lang: String,
                 pub word: String,
                 pub definition: String,
+            }
+
+            #[derive(Deserialize)]
+            pub struct MarkArticleRequest {
+                pub mark: Mark,
+                pub article_id: i32,
+            }
+
+            #[derive(Deserialize)]
+            pub struct DeleteMarkRequest {
+                pub index: i32,
+                pub article_id: i32,
+            }
+
+            #[derive(Serialize)]
+            pub struct GetReadDataResponse {
+                pub data: ReadData,
+            }
+
+            impl GetReadDataResponse {
+                pub fn new(data: ReadData) -> GetReadDataResponse {
+                    GetReadDataResponse { data }
+                }
             }
         }
     }
@@ -350,7 +392,7 @@ pub mod article {
             pub lang: String,
             pub tags: Vec<String>,
 
-            pub unique_word_count: i32
+            pub unique_word_count: i32,
         }
 
         #[derive(Serialize, Deserialize, PostgresMapper)]

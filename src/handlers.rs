@@ -72,7 +72,7 @@ pub mod user {
         db_pool: web::Data<Pool>,
         mut json: web::Json<models::net::RegisterRequest>,
     ) -> impl Responder {
-        let client: Client = db_pool
+        let mut client: Client = db_pool
             .get()
             .await
             .expect("Error connecting to the database");
@@ -90,7 +90,7 @@ pub mod user {
         };
 
         let create_result = db::user::create_user(
-            &client,
+            &mut client,
             &json.username,
             &json.display_name,
             &json.password,
@@ -331,6 +331,125 @@ pub mod user {
                 Err(_) => user_res::get_update_word_definition_error(),
             }
         }
+
+        #[post("/user/data/read/{article_id}/")]
+        pub async fn create_read_data(
+            db_pool: web::Data<Pool>,
+            web::Path(article_id): web::Path<i32>,
+            auth_user: models::db::ClaimsUser,
+        ) -> impl Responder {
+            let client: Client = match db_pool.get().await {
+                Ok(client) => client,
+                Err(err) => {
+                    eprintln!("{}", err);
+                    return user_res::get_create_read_data_error();
+                }
+            };
+
+            let result =
+                db::user::word_data::create_read_data(&client, &auth_user.id, &article_id).await;
+
+            match result {
+                Ok(()) => get_success(),
+                Err(err) => {
+                    if err == "exists" {
+                        user_res::get_read_data_exists_error()
+                    } else {
+                        user_res::get_create_read_data_error()
+                    }
+                }
+            }
+        }
+
+        #[get("/user/data/read/{article_id}/")]
+        pub async fn get_read_data(
+            db_pool: web::Data<Pool>,
+            web::Path(article_id): web::Path<i32>,
+            auth_user: models::db::ClaimsUser,
+        ) -> impl Responder {
+            let client: Client = match db_pool.get().await {
+                Ok(client) => client,
+                Err(err) => {
+                    eprintln!("{}", err);
+                    return user_res::get_fetch_read_data_error();
+                }
+            };
+
+            let result =
+                db::user::word_data::get_read_data(&client, &auth_user.id, &article_id).await;
+
+            match result {
+                Ok(read_data) => {
+                    HttpResponse::Ok().json(models::net::GetReadDataResponse::new(read_data))
+                }
+                Err(err) => {
+                    eprintln!("{}", err);
+                    user_res::get_fetch_read_data_error()
+                }
+            }
+        }
+
+        #[post("/user/data/mark_article/")]
+        pub async fn mark_article(
+            db_pool: web::Data<Pool>,
+            json: web::Json<models::net::MarkArticleRequest>,
+            auth_user: models::db::ClaimsUser,
+        ) -> impl Responder {
+            let client: Client = match db_pool.get().await {
+                Ok(client) => client,
+                Err(err) => {
+                    eprintln!("{}", err);
+                    return user_res::get_mark_article_error();
+                }
+            };
+
+            let result = db::user::word_data::mark_article(
+                &client,
+                &auth_user.id,
+                &json.article_id,
+                &json.mark,
+            )
+            .await;
+
+            match result {
+                Ok(()) => get_success(),
+                Err(err) => {
+                    eprintln!("{}", err);
+                    user_res::get_mark_article_error()
+                }
+            }
+        }
+
+        #[delete("/user/data/mark_article/")]
+        pub async fn delete_mark(
+            db_pool: web::Data<Pool>,
+            json: web::Json<models::net::DeleteMarkRequest>,
+            auth_user: models::db::ClaimsUser,
+        ) -> impl Responder {
+            let client: Client = match db_pool.get().await {
+                Ok(client) => client,
+                Err(err) => {
+                    eprintln!("{}", err);
+                    return user_res::delete_mark_error();
+                }
+            };
+
+            let result = db::user::word_data::delete_mark(
+                &client,
+                auth_user.id,
+                json.article_id,
+                json.index,
+            )
+            .await;
+
+            match result {
+                Ok(()) => get_success(),
+                Err(err) => {
+                    eprintln!("{}", err);
+                    user_res::delete_mark_error()
+                }
+            }
+        }
     }
 }
 
@@ -351,34 +470,45 @@ pub mod article {
             }
         };
 
-        let models::net::NewArticleRequest { title, author, content_description, language, tags, content, is_private } = json.0;
-        
+        let models::net::NewArticleRequest {
+            title,
+            author,
+            content_description,
+            language,
+            tags,
+            content,
+            is_private,
+        } = json.0;
+
         let words = lang::get_words_owned(&content[..], &language[..]);
-        let (unique_words, total_word_count, word_index_map, stop_word_map) = lang::get_article_main_data(&words[..]);
+        let (unique_words, total_word_count, word_index_map, stop_word_map) =
+            lang::get_article_main_data(&words[..]);
         let sentences_opt = lang::get_sentences(&content[..], &words[..], &language[..]);
         let pages = lang::get_pages(&sentences_opt);
 
         let (sentences, sentence_stops) = match sentences_opt {
-            Some((sentences, sentence_stops)) => (Some(serde_json::to_value(sentences).unwrap()), Some(sentence_stops)),
-            None => (None, None)
+            Some((sentences, sentence_stops)) => (
+                Some(serde_json::to_value(sentences).unwrap()),
+                Some(sentence_stops),
+            ),
+            None => (None, None),
         };
-
 
         let result = db::article::create_article(
             &client,
             models::db::ArticleMetadata {
-                title: title,
-                author: author,
+                title,
+                author,
                 uploader_id: auth_user.id,
-                content_description: content_description,
+                content_description,
 
-                is_private: is_private,
+                is_private,
 
                 lang: language,
-                tags: tags
+                tags,
             },
             models::db::ArticleMainData {
-                content: content,
+                content,
 
                 word_count: i32::try_from(words.len()).ok().unwrap(),
 
@@ -386,26 +516,27 @@ pub mod article {
                 unique_word_count: i32::try_from(total_word_count).ok().unwrap(),
 
                 word_index_map,
-                stop_word_map, 
+                stop_word_map,
 
                 sentences,
                 sentence_stops,
 
-                page_data: pages
+                page_data: pages,
             },
-            words
+            words,
         )
         .await;
 
-        if let Err(_) = result {
+        if result.is_err() {
             return article_res::get_create_article_error();
         }
 
         let article = result.unwrap();
 
-        let save_result = db::article::user::user_save_article(&client, &auth_user.id, &article.id).await;
+        let save_result =
+            db::article::user::user_save_article(&client, &auth_user.id, &article.id).await;
 
-        if let Err(_) = save_result {
+        if save_result.is_err() {
             return article_res::get_create_article_error();
         }
 
@@ -605,12 +736,8 @@ pub mod article {
                 }
             };
 
-            let result = db::article::user::user_delete_article(
-                &client,
-                &auth_user.id,
-                &article_id,
-            )
-            .await;
+            let result =
+                db::article::user::user_delete_article(&client, &auth_user.id, &article_id).await;
 
             match result {
                 Ok(()) => get_success(),
@@ -654,60 +781,64 @@ pub mod article {
             }
         }
 
-        #[put("/article/user/saved/single/")]
-        pub async fn save_article(
-            db_pool: web::Data<Pool>,
-            json: web::Json<models::net::ArticleRequest>,
-            auth_user: models::db::ClaimsUser,
-        ) -> impl Responder {
-            let client: Client = match db_pool.get().await {
-                Ok(client) => client,
-                Err(err) => {
-                    eprintln!("{}", err);
-                    return article_res::get_save_article_error();
-                }
-            };
+        pub mod save_data {
+            use super::*;
 
-            let result =
-                db::article::user::user_save_article(&client, &auth_user.id, &json.article_id)
-                    .await;
-
-            match result {
-                Ok(()) => get_success(),
-                Err(err) => {
-                    if err == "exists" { 
-                        article_res::get_save_article_exists_error()
-                    } else {
-                        article_res::get_save_article_error()
+            #[put("/article/user/saved/single/")]
+            pub async fn save_article(
+                db_pool: web::Data<Pool>,
+                json: web::Json<models::net::ArticleRequest>,
+                auth_user: models::db::ClaimsUser,
+            ) -> impl Responder {
+                let client: Client = match db_pool.get().await {
+                    Ok(client) => client,
+                    Err(err) => {
+                        eprintln!("{}", err);
+                        return article_res::get_save_article_error();
                     }
-                },
-            }
-        }
+                };
 
-        #[delete("/article/user/saved/single/")]
-        pub async fn remove_saved_article(
-            db_pool: web::Data<Pool>,
-            json: web::Json<models::net::ArticleRequest>,
-            auth_user: models::db::ClaimsUser,
-        ) -> impl Responder {
-            let client: Client = match db_pool.get().await {
-                Ok(client) => client,
-                Err(err) => {
-                    eprintln!("{}", err);
-                    return article_res::get_delete_article_error();
+                let result =
+                    db::article::user::user_save_article(&client, &auth_user.id, &json.article_id)
+                        .await;
+
+                match result {
+                    Ok(()) => get_success(),
+                    Err(err) => {
+                        if err == "exists" {
+                            article_res::get_save_article_exists_error()
+                        } else {
+                            article_res::get_save_article_error()
+                        }
+                    }
                 }
-            };
+            }
 
-            let result = db::article::user::user_delete_saved_article(
-                &client,
-                &auth_user.id,
-                &json.article_id,
-            )
-            .await;
+            #[delete("/article/user/saved/single/")]
+            pub async fn remove_saved_article(
+                db_pool: web::Data<Pool>,
+                json: web::Json<models::net::ArticleRequest>,
+                auth_user: models::db::ClaimsUser,
+            ) -> impl Responder {
+                let client: Client = match db_pool.get().await {
+                    Ok(client) => client,
+                    Err(err) => {
+                        eprintln!("{}", err);
+                        return article_res::get_delete_article_error();
+                    }
+                };
 
-            match result {
-                Ok(()) => get_success(),
-                Err(_) => article_res::get_delete_article_error(),
+                let result = db::article::user::user_delete_saved_article(
+                    &client,
+                    &auth_user.id,
+                    &json.article_id,
+                )
+                .await;
+
+                match result {
+                    Ok(()) => get_success(),
+                    Err(_) => article_res::get_delete_article_error(),
+                }
             }
         }
     }
