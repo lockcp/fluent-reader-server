@@ -106,8 +106,9 @@ CREATE TABLE read_article_data (
     FOREIGN KEY (fruser_id) REFERENCES fruser(id),
     article_id INTEGER NOT NULL,
     FOREIGN KEY (article_id) REFERENCES article(id),
-    learned_words JSONB NOT NULL,
-    underlines JSONB NOT NULL
+    learned_words JSONB[] NOT NULL,
+    underlines JSONB[] NOT NULL,
+    PRIMARY KEY(fruser_id, article_id)
 );
 
 CREATE INDEX read_article_data_user_index ON read_article_data(fruser_id);
