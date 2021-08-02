@@ -23,8 +23,10 @@ lazy_static! {
 pub fn handle_pass_hash(
     json: &mut web::Json<models::net::RegisterRequest>,
 ) -> Result<(), &'static str> {
-    let mut hash_config = ArgonConfig::default();
-    hash_config.hash_length = 9;
+    let hash_config = ArgonConfig {
+        hash_length: CONFIG.server.pass_hash_length,
+        ..ArgonConfig::default()
+    };
 
     let hashed = match argon2::hash_encoded(
         json.password.as_bytes(),

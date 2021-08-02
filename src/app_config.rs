@@ -14,6 +14,7 @@ pub struct ServerConfig {
     pub token_time: i64,
     pub salt: String,
     pub json_max_size: usize,
+    pub pass_hash_length: u32,
 }
 
 #[derive(Clone, Deserialize)]
