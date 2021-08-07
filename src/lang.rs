@@ -50,13 +50,7 @@ fn get_words_chinese_owned(text: &str) -> Vec<String> {
 pub fn get_sentences<'a>(
     text: &'a str,
     words: &'a [String],
-    lang: &str,
 ) -> Option<(Vec<Vec<&'a str>>, Vec<i32>)> {
-    // Only English sentence segmentation supported
-    if lang != "en" {
-        return None;
-    }
-
     let mut sentence_stops: Vec<i32> = vec![0];
 
     let sentence_strs = text.split_sentence_bounds().collect::<Vec<&str>>();
@@ -101,7 +95,7 @@ pub fn get_sentences<'a>(
 
 lazy_static! {
     static ref STOP_CHARS: HashSet<&'static str> =
-        "!\"#$%&'()*+,-./:;<=>?@[\\]^_{|}~`。？！，、；：“ ” ‘ ’「」『』（）【】—…-～	
+        "!\"#$%&'()*+,-./:;<=>?@[\\]^_{|}~`。？！，、；：“ ” ‘ ’「」『』（）【】—…～	
 《》〈〉_ "
             .split("")
             .collect();
@@ -322,6 +316,15 @@ mod tests {
         In my younger and more vulnerable years. My father gave me some advice that I've been turning. Over in my mind ever since. "Whenever you feel like criticizing any one," he. Told me, "just remember that all the people in this world haven't had the advantages that you've had."
         "#;
 
-        get_sentences(text, &get_words_english_owned(text)[..], "en");
+        get_sentences(text, &get_words_english_owned(text)[..]);
+    }
+
+    #[test]
+    fn chinese_sentence_split_1() {
+        let text = r#"
+        你好，这是一个“测试句子”。它会不会知道？你之前跟，我说“怎么办呢？”我也不知道怎么回答。哈哈哈
+        "#;
+
+        println!("{:?}", get_sentences(text, &get_words_english_owned(text)[..]));
     }
 }

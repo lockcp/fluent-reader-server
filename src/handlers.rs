@@ -483,7 +483,7 @@ pub mod article {
         let words = lang::get_words_owned(&content[..], &language[..]);
         let (unique_words, total_word_count, word_index_map, stop_word_map) =
             lang::get_article_main_data(&words[..]);
-        let sentences_opt = lang::get_sentences(&content[..], &words[..], &language[..]);
+        let sentences_opt = lang::get_sentences(&content[..], &words[..]);
         let pages = lang::get_pages(&sentences_opt);
 
         let (sentences, sentence_stops) = match sentences_opt {
