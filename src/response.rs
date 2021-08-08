@@ -123,6 +123,16 @@ pub mod article_res {
     pub fn get_create_article_error() -> HttpResponse {
         get_error("article_create_fail")
     }
+
+    #[inline]
+    pub fn get_edit_article_error() -> HttpResponse {
+        get_error("article_edit_fail")
+    }
+
+    #[inline]
+    pub fn get_edit_article_missing_error() -> HttpResponse {
+        get_error("article_missing")
+    }
 }
 
 #[inline]

@@ -34,6 +34,27 @@ fn get_article_query(from_clause: &str, where_clause: &str, order_by_clause: &st
     )
 }
 
+fn extract_opt_inc_param<'a, T, U>(
+    params: &mut [&'a (dyn ToSql + Sync)],
+    current_param: &mut usize,
+    opt: &'a Option<T>,
+    name: &str,
+    func: &mut U,
+) -> bool 
+    where
+        T: ToSql + Sync,
+        U: FnMut(&str, &usize),
+{
+    if let Some(val) = opt {
+        params[*current_param] = val;
+        (*func)(name, current_param);
+        *current_param += 1;
+        return true;
+    }
+    
+    false
+}
+
 pub mod user {
     use super::*;
 
@@ -88,23 +109,6 @@ pub mod user {
                 eprintln!("{}", err);
                 Err("Error getting user")
             }
-        }
-    }
-
-    fn extract_opt_inc_param<'a, T, U>(
-        params: &mut [&'a (dyn ToSql + Sync); 7],
-        current_param: &mut usize,
-        opt: &'a Option<T>,
-        name: &str,
-        func: &mut U,
-    ) where
-        T: ToSql + Sync,
-        U: FnMut(&str, &usize),
-    {
-        if let Some(val) = opt {
-            params[*current_param] = val;
-            (*func)(name, current_param);
-            *current_param += 1;
         }
     }
 
@@ -806,12 +810,12 @@ pub mod article {
     use super::*;
 
     pub async fn create_article(
-        client: &Client,
+        trans: &deadpool_postgres::Transaction<'_>,
         article_meta_data: models::db::ArticleMetadata,
         article_main_data: models::db::ArticleMainData,
         words: Vec<String>,
     ) -> Result<models::db::NewArticle, &'static str> {
-        let statement = match client
+        let statement = match trans
             .prepare(
                 r#"
                 INSERT INTO article 
@@ -871,7 +875,7 @@ pub mod article {
             None => vec![],
         };
 
-        match client
+        match trans
             .query_one(
                 &statement,
                 &[
@@ -909,6 +913,234 @@ pub mod article {
             Err(err) => {
                 eprintln!("{}", err);
                 Err("Error creating article")
+            }
+        }
+    }
+
+    pub async fn edit_article(
+        trans: &deadpool_postgres::Transaction<'_>,
+        article_id: i32,
+        user_id: i32,
+        update_metadata_opt: models::db::UpdateArticleMetadataOpt,
+        main_data_opt: Option<models::db::ArticleMainData>,
+        words_opt: Option<Vec<String>>,
+    ) -> Result<(), &'static str> {
+        let mut params: [&'_ (dyn ToSql + Sync); 18] = [&0; 18];
+        let mut current_param: usize = 0;
+
+        let mut update_statements: Vec<String> = vec![];
+
+        let mut add_to_statement = |name: &str, curr: &usize| {
+            update_statements.push(format!(" {} = ${}", name, curr + 1));
+        };
+
+        let mut types: Vec<Type> = vec![];
+
+        {
+            if extract_opt_inc_param(
+                &mut params,
+                &mut current_param,
+                &update_metadata_opt.title,
+                "title",
+                &mut add_to_statement,
+            ) {
+                types.push(Type::TEXT);
+            }
+
+            if extract_opt_inc_param(
+                &mut params,
+                &mut current_param,
+                &update_metadata_opt.author,
+                "author",
+                &mut add_to_statement,
+            ) {
+                types.push(Type::TEXT);
+            }
+
+            if extract_opt_inc_param(
+                &mut params,
+                &mut current_param,
+                &update_metadata_opt.content_description,
+                "content_description",
+                &mut add_to_statement,
+            ) {
+                types.push(Type::TEXT);
+            }
+
+            if extract_opt_inc_param(
+                &mut params,
+                &mut current_param,
+                &update_metadata_opt.language,
+                "lang",
+                &mut add_to_statement,
+            ) {
+                types.push(Type::TEXT);
+            }
+
+            if extract_opt_inc_param(
+                &mut params,
+                &mut current_param,
+                &update_metadata_opt.tags,
+                "tags",
+                &mut add_to_statement,
+            ) {
+                types.push(Type::TEXT_ARRAY);
+            }
+
+            if extract_opt_inc_param(
+                &mut params,
+                &mut current_param,
+                &update_metadata_opt.is_private,
+                "is_private",
+                &mut add_to_statement,
+            ) { 
+                types.push(Type::BOOL);
+            }
+        }
+
+        let main_data_opt_ref = main_data_opt.as_ref();
+        let words_opt_ref = words_opt.as_ref();
+
+        if let Some(main_data) = main_data_opt_ref {
+            if let Some(words) = words_opt_ref {
+                params[current_param] = words;
+                add_to_statement("words", &current_param);
+                current_param += 1;
+                types.push(Type::TEXT_ARRAY);
+
+                let models::db::ArticleMainData {
+                    content,
+
+                    word_count,
+
+                    unique_words,
+                    unique_word_count,
+
+                    word_index_map,
+                    stop_word_map,
+
+                    sentences,
+                    sentence_stops,
+
+                    page_data,
+                } = main_data;
+
+                params[current_param] = content;
+                add_to_statement("content", &current_param);
+                current_param += 1;
+                types.push(Type::TEXT);
+
+                params[current_param] = word_count;
+                add_to_statement("word_count", &current_param);
+                current_param += 1;
+                types.push(Type::INT4);
+
+                params[current_param] = unique_words;
+                add_to_statement("unique_words", &current_param);
+                current_param += 1;
+                types.push(Type::JSONB);
+
+                params[current_param] = unique_word_count;
+                add_to_statement("unique_word_count", &current_param);
+                current_param += 1;
+                types.push(Type::INT4);
+
+                params[current_param] = word_index_map;
+                add_to_statement("word_index_map", &current_param);
+                current_param += 1;
+                types.push(Type::JSONB);
+
+                params[current_param] = stop_word_map;
+                add_to_statement("stop_word_map", &current_param);
+                current_param += 1;
+                types.push(Type::JSONB);
+
+                params[current_param] = sentences;
+                add_to_statement("sentences", &current_param);
+                current_param += 1;
+                types.push(Type::JSONB);
+
+                params[current_param] = sentence_stops;
+                add_to_statement("sentence_stops", &current_param);
+                current_param += 1;
+                types.push(Type::INT4_ARRAY);
+
+                params[current_param] = page_data;
+                add_to_statement("page_data", &current_param);
+                current_param += 1;
+                types.push(Type::JSONB);
+            } else {
+                panic!("main_data_opt was Some but words was None");
+            }
+        }
+
+        params[current_param] = &article_id;
+        current_param += 1;
+        types.push(Type::INT4);
+
+        params[current_param] = &user_id;
+        current_param += 1;
+        types.push(Type::INT4);
+
+        let set_clause = update_statements.join(",");
+
+        let statement = match trans
+            .prepare_typed(
+                &format!(
+                    r#"
+                        UPDATE article
+                        SET {}
+                        WHERE id = ${} AND uploader_id = ${}
+                    "#,
+                    set_clause,
+                    current_param - 1,
+                    current_param
+                )[..],
+                &types[..]
+            )
+            .await
+        {
+            Ok(statement) => statement,
+            Err(err) => {
+                eprintln!("{}", err);
+                return Err("Error editing article");
+            }
+        };
+
+        match trans.execute(&statement, &params[..current_param]).await {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                eprintln!("{}", err);
+                Err("Error editing article")
+            }
+        }
+    }
+
+    pub async fn does_own_article(
+        client: &Client,
+        article_id: i32,
+        user_id: i32,
+    ) -> Result<(String, String), &'static str> {
+        let statement = client
+            .prepare(
+                r#"
+                    SELECT content, lang FROM article 
+                    WHERE 
+                        id = $1 AND 
+                        uploader_id = $2
+                "#,
+            )
+            .await
+            .unwrap();
+
+        match client.query_opt(&statement, &[&article_id, &user_id]).await {
+            Ok(ref row_opt) => match row_opt {
+                Some(ref row) => Ok((row.get(0), row.get(1))),
+                None => Err("missing"),
+            },
+            Err(err) => {
+                eprintln!("{}", err);
+                Err("Error getting article")
             }
         }
     }
@@ -1094,11 +1326,11 @@ pub mod article {
         }
 
         pub async fn user_save_article(
-            client: &Client,
+            trans: &deadpool_postgres::Transaction<'_>,
             user_id: &i32,
             article_id: &i32,
         ) -> Result<(), &'static str> {
-            let insert_statement = client
+            let insert_statement = trans
                 .prepare(
                     r#"
                     INSERT INTO saved_article (fruser_id, article_id, saved_on)
@@ -1123,7 +1355,7 @@ pub mod article {
                 .await
                 .unwrap();
 
-            match client
+            match trans
                 .execute(&insert_statement, &[user_id, article_id])
                 .await
             {

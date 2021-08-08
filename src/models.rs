@@ -459,6 +459,31 @@ pub mod article {
 
             pub page_data: serde_json::Value,
         }
+
+        #[derive(Serialize, Deserialize)]
+        pub struct ArticleContentData {
+            pub words: Vec<String>,
+
+            pub unique_words: serde_json::Value,
+            pub unique_word_count: i32,
+
+            pub word_index_map: serde_json::Value,
+            pub stop_word_map: serde_json::Value,
+
+            pub sentences: Option<serde_json::Value>,
+            pub sentence_stops: Option<Vec<i32>>,
+
+            pub page_data: serde_json::Value,
+        }
+
+        pub struct UpdateArticleMetadataOpt {
+            pub title: Option<String>,
+            pub author: Option<String>,
+            pub content_description: Option<String>,
+            pub language: Option<String>,
+            pub tags: Option<Vec<String>>,
+            pub is_private: Option<bool>,
+        }
     }
 
     pub mod net {
@@ -528,6 +553,23 @@ pub mod article {
             pub fn from(article: NewArticle) -> NewArticleResponse {
                 NewArticleResponse { article }
             }
+        }
+
+        #[derive(Deserialize)]
+        pub struct EditArticleRequest {
+            pub article_id: i32,
+            pub title: Option<String>,
+            pub author: Option<String>,
+            pub content: Option<String>,
+            pub content_description: Option<String>,
+            pub language: Option<String>,
+            pub tags: Option<Vec<String>>,
+            pub is_private: Option<bool>,
+        }
+
+        #[derive(Serialize)]
+        pub struct EditArticleResponse {
+            pub article: NewArticle,
         }
 
         // get user uploaded article list
