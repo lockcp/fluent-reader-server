@@ -76,6 +76,7 @@ async fn main() -> std::io::Result<()> {
             .service(article::user::get_all_user_article_list)
             .service(article::user::get_saved_article_list)
             .service(article::user::get_full_article)
+            .service(article::user::delete_article)
             .service(article::user::save_data::save_article)
             .service(article::user::save_data::remove_saved_article)
             .service(user::data::create_read_data)
