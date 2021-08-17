@@ -276,6 +276,7 @@ pub mod user {
             pub struct Mark {
                 pub mark_type: String,
                 pub selection: Selection,
+                pub color: String
             }
 
             #[derive(Serialize, Deserialize, PostgresMapper)]

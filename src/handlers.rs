@@ -350,7 +350,7 @@ pub mod user {
                 db::user::word_data::create_read_data(&client, &auth_user.id, &article_id).await;
 
             match result {
-                Ok(()) => get_success(),
+                Ok(_) => get_success(),
                 Err(err) => {
                     if err == "exists" {
                         user_res::get_read_data_exists_error()
@@ -378,15 +378,31 @@ pub mod user {
             let result =
                 db::user::word_data::get_read_data(&client, &auth_user.id, &article_id).await;
 
-            match result {
-                Ok(read_data) => {
-                    HttpResponse::Ok().json(models::net::GetReadDataResponse::new(read_data))
+            let read_data = match result {
+                Ok(read_data) => read_data,
+                Err(get_read_data_err) => {
+                    if get_read_data_err != "missing" {
+                        eprintln!("{}", get_read_data_err);
+                        return user_res::get_fetch_read_data_error();
+                    } 
+
+                    let create_read_data_result =
+                        db::user::word_data::create_read_data(&client, &auth_user.id, &article_id).await;
+                    
+                    match create_read_data_result {
+                        Ok(read_data) => read_data,
+                        Err(create_read_data_err) => {
+                            if create_read_data_err == "exists" {
+                                return user_res::get_read_data_exists_error()
+                            } else {
+                                return user_res::get_create_read_data_error()
+                            }
+                        }
+                    }
                 }
-                Err(err) => {
-                    eprintln!("{}", err);
-                    user_res::get_fetch_read_data_error()
-                }
-            }
+            };
+
+            HttpResponse::Ok().json(models::net::GetReadDataResponse::new(read_data))
         }
 
         #[post("/user/data/mark_article/")]

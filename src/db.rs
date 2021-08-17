@@ -656,7 +656,7 @@ pub mod user {
             client: &Client,
             user_id: &i32,
             article_id: &i32,
-        ) -> Result<(), &'static str> {
+        ) -> Result<models::db::ReadData, &'static str> {
             let insert_statement = client
                 .prepare(
                     r#"
@@ -678,16 +678,23 @@ pub mod user {
                     '{}',
                     '{}'
                 )
+                RETURNING *
             "#,
                 )
                 .await
                 .unwrap();
 
             match client
-                .execute(&insert_statement, &[&user_id, &article_id])
+                .query_one(&insert_statement, &[&user_id, &article_id])
                 .await
             {
-                Ok(_) => Ok(()),
+                Ok(row) => match models::db::ReadData::from_row_ref(&row) {
+                    Ok(read_data) => Ok(read_data),
+                    Err(err) => {
+                        eprintln!("{}", err);
+                        Err("Couldn't create read article data")
+                    }
+                },
                 Err(err) => {
                     eprintln!("{}", err);
                     if let Some(sql_state) = err.code() {
@@ -718,12 +725,18 @@ pub mod user {
 
             let get_read_data_err = Err("Couldn't get read article data");
 
-            match client.query_one(&statement, &[&user_id, &article_id]).await {
-                Ok(row) => match models::db::ReadData::from_row_ref(&row) {
-                    Ok(read_data) => Ok(read_data),
-                    Err(err) => {
-                        eprintln!("{}", err);
-                        get_read_data_err
+            match client.query_opt(&statement, &[&user_id, &article_id]).await {
+                Ok(row_opt) => match row_opt {
+                    Some(row) => match models::db::ReadData::from_row_ref(&row) {
+                        Ok(read_data) => Ok(read_data),
+                        Err(err) => {
+                            eprintln!("{}", err);
+                            get_read_data_err
+                        }
+                    },
+                    None => {
+                        eprintln!("Read data not found");
+                        Err("missing")
                     }
                 },
                 Err(err) => {
